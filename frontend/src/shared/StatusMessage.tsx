@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { tv } from "tailwind-variants";
+import { tv } from "tailwind-variants/lite";
 
 // One status-row recipe replaces the half-dozen near-duplicate status styles a
 // growing app accumulates. Tone is the only knob.

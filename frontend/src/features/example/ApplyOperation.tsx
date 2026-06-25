@@ -1,5 +1,5 @@
 import { Button } from "react-aria-components";
-import { tv } from "tailwind-variants";
+import { tv } from "tailwind-variants/lite";
 import { useApplyExample } from "../../bridge/queries";
 import { StatusMessage } from "../../shared/StatusMessage";
 

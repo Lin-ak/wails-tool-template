@@ -1,15 +1,18 @@
 module wails-tool-template
 
-go 1.23
+go 1.26
+
+toolchain go1.26.4
 
 // internal/* packages depend only on the standard library, so
 // `go vet ./internal/...` and `go test ./internal/...` run offline on a clean
 // checkout. package main (the Wails bootstrap) needs the require block below
 // plus a built frontend/dist for its //go:embed.
 
-require github.com/wailsapp/wails/v2 v2.11.0
+require github.com/wailsapp/wails/v2 v2.12.0
 
 require (
+	git.sr.ht/~jackmordaunt/go-toast/v2 v2.0.3 // indirect
 	github.com/bep/debounce v1.2.1 // indirect
 	github.com/go-ole/go-ole v1.3.0 // indirect
 	github.com/godbus/dbus/v5 v5.1.0 // indirect

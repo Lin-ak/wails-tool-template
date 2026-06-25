@@ -8,10 +8,10 @@ import {
   TextField,
 } from "react-aria-components";
 import { useForm } from "react-hook-form";
-import { tv } from "tailwind-variants";
+import { tv } from "tailwind-variants/lite";
 import { useDoExample } from "../../bridge/queries";
 import { StatusMessage } from "../../shared/StatusMessage";
-import { type ExampleInput, exampleSchema } from "./schema";
+import { type ExampleInput, type ExampleOutput, exampleSchema } from "./schema";
 
 // RAC exposes component state as data-attributes (data-hovered, data-focused,
 // data-pressed, data-invalid, data-disabled). We target them with Tailwind v4's
@@ -31,7 +31,9 @@ export function ExampleForm() {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<ExampleInput>({ resolver: zodResolver(exampleSchema) });
+  } = useForm<ExampleInput, unknown, ExampleOutput>({
+    resolver: zodResolver(exampleSchema),
+  });
   const run = useDoExample();
 
   return (

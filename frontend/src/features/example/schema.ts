@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 // One Zod schema drives both runtime validation (via the RHF resolver) and the
-// inferred TS type. Mirror the Go domain validation rules here.
+// inferred TS types. Mirror the Go domain validation rules here.
 export const exampleSchema = z.object({
   // .trim() so a whitespace-only host fails, matching the Go backend (which
   // trims and rejects an empty host).
@@ -10,4 +10,8 @@ export const exampleSchema = z.object({
   secret: z.string().min(1, "Secret is required"),
 });
 
-export type ExampleInput = z.infer<typeof exampleSchema>;
+// Input = the raw form field values (before coercion); Output = the validated,
+// transformed values. With z.coerce, these differ (port: unknown → number), so
+// RHF is parameterized with both.
+export type ExampleInput = z.input<typeof exampleSchema>;
+export type ExampleOutput = z.output<typeof exampleSchema>;

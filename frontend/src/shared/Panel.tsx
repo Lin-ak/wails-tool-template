@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { tv } from "tailwind-variants";
+import { tv } from "tailwind-variants/lite";
 
 // tailwind-variants keeps variant logic out of the JSX. Define the recipe once;
 // call panel({ tone }) to get the className string.
