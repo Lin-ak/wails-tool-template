@@ -10,6 +10,9 @@ import (
 // observability rule is enforced structurally rather than remembered in each
 // handler. It deliberately logs no raw output or message (which may contain
 // secrets); handlers log request-scoped, redacted messages.
+//
+// Wrap the EXEC runner with this, then wrap THAT with RetryRunner, so every
+// attempt is logged (not just the final one).
 type LoggingRunner struct {
 	Inner Runner
 	Log   *slog.Logger
@@ -33,9 +36,11 @@ func (l LoggingRunner) Run(ctx context.Context, cmd Command) Result {
 	return res
 }
 
-// RetryRunner retries the inner runner while it returns KindTransient, up to Max
-// attempts, sleeping Backoff(attempt) between tries and honoring context
-// cancellation. This is what makes the KindTransient distinction actionable.
+// RetryRunner retries the inner runner on transient failures, but ONLY for
+// commands explicitly marked Retryable (reads/idempotent ops). Writes default to
+// Retryable=false, so a timeout that occurs after the external tool already
+// applied a side effect is never blindly replayed. It honors context
+// cancellation and surfaces it as KindCanceled rather than the prior result.
 type RetryRunner struct {
 	Inner   Runner
 	Max     int                             // max attempts; <1 is treated as 1
@@ -49,8 +54,11 @@ func (r RetryRunner) Run(ctx context.Context, cmd Command) Result {
 	}
 	var res Result
 	for attempt := 1; attempt <= max; attempt++ {
+		if ctx.Err() != nil {
+			return Result{Kind: KindCanceled, Message: cmd.Name + " canceled"}
+		}
 		res = r.Inner.Run(ctx, cmd)
-		if res.Kind != KindTransient || attempt == max {
+		if !cmd.Retryable || res.Kind != KindTransient || attempt == max {
 			return res
 		}
 		if r.Backoff == nil {
@@ -61,7 +69,7 @@ func (r RetryRunner) Run(ctx context.Context, cmd Command) Result {
 			select {
 			case <-ctx.Done():
 				timer.Stop()
-				return res
+				return Result{Kind: KindCanceled, Message: cmd.Name + " canceled"}
 			case <-timer.C:
 			}
 		}

@@ -18,6 +18,7 @@ var assets embed.FS
 
 func main() {
 	app := apppkg.NewApp()
+	api := apppkg.NewAPI(app) // only the API surface is bound to JS
 
 	err := wails.Run(&options.App{
 		Title:  "wails-tool-template",
@@ -34,7 +35,7 @@ func main() {
 				wailsruntime.EventsEmit(ctx, "op:progress", p)
 			}))
 		},
-		Bind: []any{app},
+		Bind: []any{api},
 	})
 	if err != nil {
 		panic(err)

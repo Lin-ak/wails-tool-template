@@ -3,17 +3,18 @@ name: ci
 on: [push, pull_request]
 
 jobs:
-  backend:
-    # The deployment target. Bugs in this class of app hide on the wrong OS,
-    # so the boundary code must be exercised on Windows from day one.
-    runs-on: windows-latest
+  backend-unit:
+    # Offline-safe unit tests. internal/* is stdlib-only and never imports Wails
+    # or the embedded frontend, so this passes on a clean checkout without
+    # building the frontend first.
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
           go-version: "1.23"
-      - run: go vet ./...
-      - run: go test ./...
+      - run: go vet ./internal/...
+      - run: go test ./internal/...
 
   frontend:
     runs-on: ubuntu-latest
@@ -29,3 +30,19 @@ jobs:
       - run: npx biome ci .
       - run: npm run build
       - run: npm test
+
+  build:
+    # Integration: builds frontend/dist (required by the go:embed) and performs a
+    # pinned Wails build of the whole app. This is the job that exercises
+    # package main, the Wails dependency, and the embed.
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.23"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: go install github.com/wailsapp/wails/v2/cmd/wails@v2.11.0
+      - run: wails build -platform windows/amd64

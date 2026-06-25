@@ -36,7 +36,7 @@ type ExampleResult struct {
 
 type StepResult struct {
 	Name       string `json:"name"`
-	Kind       string `json:"kind"` // success / not_found / transient / fatal / ...
+	Kind       string `json:"kind"` // success / already_done / not_found / transient / fatal / canceled
 	Code       int    `json:"code"`
 	Error      string `json:"error,omitempty"`
 	DurationMs int64  `json:"durationMs"`
@@ -45,13 +45,31 @@ type StepResult struct {
 type ApplyResult struct {
 	OpID     string       `json:"opId"`
 	Ok       bool         `json:"ok"`
-	Partial  bool         `json:"partial"` // some steps committed before a failure
-	Steps    []StepResult `json:"steps"`
+	Partial  bool         `json:"partial"`  // a write may have landed before a failure
+	Canceled bool         `json:"canceled"` // the run was canceled
+	Steps    []StepResult `json:"steps"`    // always non-nil
 	Error    string       `json:"error,omitempty"`
 	Warnings []string     `json:"warnings,omitempty"`
 }
 
-// ---- App ----
+// ---- API: the bound Wails surface ----
+
+// API is the ONLY object bound across the bridge. It exposes exactly the
+// application methods; lifecycle wiring lives on App (which is not bound), so
+// Wails does not expose Startup/SetEmitter to JavaScript.
+type API struct{ app *App }
+
+func NewAPI(app *App) *API { return &API{app: app} }
+
+func (a *API) DoExample(req ExampleRequest) ExampleResult { return a.app.DoExample(req) }
+
+func (a *API) ApplyExample(req ExampleRequest, opID string) ApplyResult {
+	return a.app.ApplyExample(req, opID)
+}
+
+func (a *API) CancelOperation(id string) bool { return a.app.CancelOperation(id) }
+
+// ---- App: implementation + lifecycle (not bound) ----
 
 type App struct {
 	ctx      context.Context
@@ -59,11 +77,11 @@ type App struct {
 	runner   adapter.Runner
 	registry *ops.Registry
 	emitter  ops.Emitter
-	newOpID  func() string
 }
 
-// NewApp wires the production runner stack: ExecRunner, retried on transient
-// failures, with every call logged (middleware A).
+// NewApp wires the production runner stack. Order matters: RetryRunner wraps
+// LoggingRunner wraps ExecRunner, so EVERY attempt is logged (middleware A),
+// not just the final one.
 func NewApp() *App {
 	log := logging.New()
 	exec := adapter.ExecRunner{
@@ -73,13 +91,10 @@ func NewApp() *App {
 		Default:  20 * time.Second,
 		OnStart:  platform.ConfigureHiddenCommandWindow,
 	}
-	runner := adapter.LoggingRunner{
-		Inner: adapter.RetryRunner{
-			Inner:   exec,
-			Max:     3,
-			Backoff: adapter.ExponentialBackoff(200 * time.Millisecond),
-		},
-		Log: log,
+	runner := adapter.RetryRunner{
+		Inner:   adapter.LoggingRunner{Inner: exec, Log: log},
+		Max:     3,
+		Backoff: adapter.ExponentialBackoff(200 * time.Millisecond),
 	}
 	a := NewAppWithRunner(runner)
 	a.log = log
@@ -87,22 +102,20 @@ func NewApp() *App {
 }
 
 // NewAppWithRunner injects the Runner (DI seam) so handlers can be unit-tested
-// with adapter.FakeRunner — no Wails, no real external tool (E).
+// with adapter.FakeRunner — no Wails, no real external tool.
 func NewAppWithRunner(runner adapter.Runner) *App {
 	return &App{
 		log:      logging.New(),
 		runner:   runner,
 		registry: ops.NewRegistry(),
 		emitter:  ops.NopEmitter{},
-		newOpID:  defaultOpID,
 	}
 }
 
-// Startup stores the Wails context (called from OnStartup).
+// Startup stores the Wails context (called from OnStartup; not bound).
 func (a *App) Startup(ctx context.Context) { a.ctx = ctx }
 
-// SetEmitter installs the progress emitter (the Wails implementation is wired in
-// main at startup).
+// SetEmitter installs the progress emitter (wired in main at startup; not bound).
 func (a *App) SetEmitter(e ops.Emitter) {
 	if e != nil {
 		a.emitter = e
@@ -138,56 +151,62 @@ func (a *App) DoExample(req ExampleRequest) ExampleResult {
 }
 
 // ApplyExample runs a multi-step plan over a cancellable operation (B), streaming
-// progress and returning per-step typed results (E). Built via NewApp, transient
-// steps are retried and every call logged by the runner middleware (A).
-func (a *App) ApplyExample(req ExampleRequest) ApplyResult {
+// progress and returning per-step typed results (E). The opID is supplied by the
+// client so progress events can be filtered to this exact operation.
+func (a *App) ApplyExample(req ExampleRequest, opID string) ApplyResult {
+	out := ApplyResult{Steps: []StepResult{}} // never nil → never crashes the UI .map()
+
 	norm, warnings, err := domain.NormalizeExample(domain.ExampleRequest(req))
+	out.Warnings = warnings
 	if err != nil {
-		return ApplyResult{Error: err.Error()}
+		out.Error = err.Error()
+		return out
 	}
 
-	opID := a.newOpID()
+	if strings.TrimSpace(opID) == "" {
+		opID = defaultOpID() // resilience: synthesize one if the client didn't supply it
+	}
+	out.OpID = opID
 	ctx, release := a.registry.Begin(a.ctxOrBackground(), opID)
 	defer release()
 
 	plan := exampleApplyPlan(norm)
 	red := logging.NewRedactor(norm.Secret)
-	results := plan.ExecuteWithProgress(ctx, a.runner, a.emitter, opID)
+	outcomes := plan.ExecuteWithProgress(ctx, a.runner, a.emitter, opID)
 
-	out := ApplyResult{OpID: opID, Warnings: warnings, Steps: make([]StepResult, 0, len(results))}
-	for i, r := range results {
-		step := StepResult{
-			Name:       plan.Steps[i].Command.Name,
-			Kind:       r.Kind.String(),
-			Code:       r.Code,
-			DurationMs: r.DurationMs,
+	out.Steps = make([]StepResult, 0, len(outcomes))
+	for _, o := range outcomes {
+		sr := StepResult{
+			Name:       o.Step.Command.Name,
+			Kind:       o.Result.Kind.String(),
+			Code:       o.Result.Code,
+			DurationMs: o.Result.DurationMs,
 		}
-		if !r.OK() {
-			step.Error = red.Redact(r.Message)
+		if !o.Accepted {
+			sr.Error = red.Redact(o.Result.Message)
 		}
-		out.Steps = append(out.Steps, step)
+		out.Steps = append(out.Steps, sr)
 	}
 
-	failed := len(results) == 0 || !results[len(results)-1].OK()
-	out.Ok = !failed
-	if failed {
-		out.Partial = domain.Committed(results)
-		if len(results) > 0 {
-			out.Error = red.Redact(results[len(results)-1].Message)
-		}
+	out.Ok = domain.Succeeded(outcomes)
+	out.Partial = !out.Ok && domain.PartiallyApplied(outcomes) // partial only matters on failure
+	out.Canceled = domain.Canceled(outcomes)
+	if !out.Ok && len(outcomes) > 0 {
+		out.Error = red.Redact(outcomes[len(outcomes)-1].Result.Message)
 	}
 	return out
 }
 
-// exampleApplyPlan is the representative multi-step plan: detect → configure →
-// idempotent enable → verify. Replace the steps with the real operation.
+// exampleApplyPlan is the representative multi-step plan: read → write → idempotent
+// write → verify. Only reads/verifies are Retryable; writes are not (a timeout
+// after a side effect must not be replayed).
 func exampleApplyPlan(n domain.NormalizedExample) domain.Plan {
 	secret := []byte(n.Secret)
 	return domain.Plan{Steps: []domain.Step{
-		{Command: adapter.Command{ID: "detect", Name: "detect", Args: n.Args()}},
-		{Command: adapter.Command{ID: "configure", Name: "configure", Args: n.Args(), Stdin: secret}},
-		{Command: adapter.Command{ID: "enable", Name: "enable", Args: n.Args()}, AllowAlreadyDone: true},
-		{Command: adapter.Command{ID: "verify", Name: "verify", Args: n.Args()}},
+		{Effect: domain.EffectRead, Command: adapter.Command{ID: "detect", Name: "detect", Args: n.Args(), Retryable: true}},
+		{Effect: domain.EffectWrite, Command: adapter.Command{ID: "configure", Name: "configure", Args: n.Args(), Stdin: secret}},
+		{Effect: domain.EffectWrite, AllowAlreadyDone: true, Command: adapter.Command{ID: "enable", Name: "enable", Args: n.Args()}},
+		{Effect: domain.EffectVerify, Command: adapter.Command{ID: "verify", Name: "verify", Args: n.Args(), Retryable: true}},
 	}}
 }
 

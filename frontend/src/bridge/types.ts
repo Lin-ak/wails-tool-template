@@ -27,6 +27,7 @@ export interface ApplyResult {
   opId: string;
   ok: boolean;
   partial: boolean;
+  canceled: boolean;
   steps: StepResult[];
   error?: string;
   warnings?: string[];

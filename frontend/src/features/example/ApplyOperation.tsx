@@ -20,6 +20,7 @@ const kindColor: Record<string, string> = {
   already_done: "text-green-700",
   not_found: "text-amber-700",
   transient: "text-amber-700",
+  canceled: "text-neutral-500",
   fatal: "text-red-700",
 };
 
@@ -31,6 +32,7 @@ export function ApplyOperation() {
   const pct = apply.progress
     ? Math.round((apply.progress.step / apply.progress.total) * 100)
     : 0;
+  const steps = apply.data?.steps ?? [];
 
   return (
     <div className="flex flex-col gap-3">
@@ -64,9 +66,9 @@ export function ApplyOperation() {
         </div>
       ) : null}
 
-      {apply.data ? (
+      {steps.length > 0 ? (
         <ul className="flex flex-col gap-1">
-          {apply.data.steps.map((s) => (
+          {steps.map((s) => (
             <li
               key={s.name}
               className="flex items-center justify-between text-sm"
@@ -82,7 +84,9 @@ export function ApplyOperation() {
         </ul>
       ) : null}
 
-      {apply.data && !apply.data.ok ? (
+      {apply.data?.canceled ? (
+        <StatusMessage tone="warning">Canceled.</StatusMessage>
+      ) : apply.data && !apply.data.ok ? (
         <StatusMessage tone="error">
           {apply.data.partial ? "Partially applied: " : ""}
           {apply.data.error ?? "Failed."}

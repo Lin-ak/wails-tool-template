@@ -7,7 +7,7 @@ import type { ApplyResult, ExampleRequest, ExampleResult } from "./types";
 // generated bindings from `wailsjs/go/app/App` and drop the window plumbing.
 interface Bridge {
   DoExample(req: ExampleRequest): Promise<ExampleResult>;
-  ApplyExample(req: ExampleRequest): Promise<ApplyResult>;
+  ApplyExample(req: ExampleRequest, opId: string): Promise<ApplyResult>;
   CancelOperation(id: string): Promise<boolean>;
 }
 
@@ -27,6 +27,7 @@ function bridge(): Bridge {
 
 export const client = {
   doExample: (req: ExampleRequest) => bridge().DoExample(req),
-  applyExample: (req: ExampleRequest) => bridge().ApplyExample(req),
+  applyExample: (req: ExampleRequest, opId: string) =>
+    bridge().ApplyExample(req, opId),
   cancelOperation: (id: string) => bridge().CancelOperation(id),
 };

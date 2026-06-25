@@ -22,6 +22,9 @@ type ExecRunner struct {
 // Result. A deadline is reported as KindTransient (retryable) before the
 // Classifier sees it, so timeouts never get misread as fatal.
 func (r ExecRunner) Run(ctx context.Context, cmd Command) Result {
+	if ctx.Err() != nil {
+		return Result{Kind: KindCanceled, Message: cmd.Name + " canceled"}
+	}
 	timeout := cmd.Timeout
 	if timeout == 0 {
 		timeout = r.Default
@@ -46,7 +49,12 @@ func (r ExecRunner) Run(ctx context.Context, cmd Command) Result {
 	err := c.Run()
 	dur := time.Since(start).Milliseconds()
 
-	if runCtx.Err() == context.DeadlineExceeded {
+	// Distinguish caller cancellation (KindCanceled) from a per-command timeout
+	// (KindTransient) before handing off to the external-output classifier.
+	switch {
+	case ctx.Err() == context.Canceled:
+		return Result{Kind: KindCanceled, Message: cmd.Name + " canceled", DurationMs: dur}
+	case runCtx.Err() == context.DeadlineExceeded:
 		return Result{Kind: KindTransient, Message: cmd.Name + " timed out", DurationMs: dur}
 	}
 	kind, code, msg := r.Classify(stdout.String(), stderr.String(), exitCode(err), err)

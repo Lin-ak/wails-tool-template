@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { client } from "./client";
 import { onProgress } from "./events";
 import type { ExampleRequest, Progress } from "./types";
@@ -14,18 +14,31 @@ export function useDoExample() {
   });
 }
 
-// useApplyExample wires the multi-step apply: it subscribes to progress events
-// while the mutation runs, exposes the latest Progress, and a cancel() that
-// targets the in-flight operation by id.
+function newOpId(): string {
+  return (
+    globalThis.crypto?.randomUUID?.() ??
+    `op-${Date.now()}-${Math.random().toString(16).slice(2)}`
+  );
+}
+
+// useApplyExample wires the multi-step apply. The operation id is generated
+// client-side and passed to the backend, so progress events are filtered to THIS
+// operation (no cross-talk between concurrent operations) and Cancel always
+// targets the right one.
 export function useApplyExample() {
   const [progress, setProgress] = useState<Progress | null>(null);
+  const opIdRef = useRef<string | null>(null);
 
   const mutation = useMutation({
     mutationFn: async (req: ExampleRequest) => {
+      const opId = newOpId();
+      opIdRef.current = opId;
       setProgress(null);
-      const unsubscribe = onProgress(setProgress);
+      const unsubscribe = onProgress((p) => {
+        if (p.opId === opId) setProgress(p);
+      });
       try {
-        return await client.applyExample(req);
+        return await client.applyExample(req, opId);
       } finally {
         unsubscribe();
       }
@@ -33,8 +46,8 @@ export function useApplyExample() {
   });
 
   const cancel = () => {
-    if (progress?.opId) {
-      void client.cancelOperation(progress.opId);
+    if (opIdRef.current) {
+      void client.cancelOperation(opIdRef.current);
     }
   };
 

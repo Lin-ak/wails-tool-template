@@ -42,11 +42,12 @@ func NormalizeExample(req ExampleRequest) (NormalizedExample, []string, error) {
 	if req.Port < 1 || req.Port > 65535 {
 		return NormalizedExample{}, warnings, errors.New("port must be between 1 and 65535")
 	}
+	if req.Secret == "" {
+		// Required, matching the frontend Zod schema (no front/back disagreement).
+		return NormalizedExample{}, warnings, errors.New("secret is required")
+	}
 	if strings.ContainsAny(req.Secret, "\r\n\x00") {
 		return NormalizedExample{}, warnings, errors.New("secret contains invalid control characters")
-	}
-	if req.Secret == "" {
-		warnings = append(warnings, "secret is empty")
 	}
 
 	return NormalizedExample{Host: host, Port: req.Port, Secret: req.Secret}, warnings, nil

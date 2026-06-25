@@ -17,8 +17,9 @@ const (
 	KindSuccess     Kind = iota // operation completed
 	KindNotFound                // target object does not exist
 	KindAlreadyDone             // idempotent no-op (already in desired state)
-	KindTransient               // retryable (timeout, connection reset)
+	KindTransient               // retryable / uncertain (timeout, connection reset)
 	KindFatal                   // permanent failure
+	KindCanceled                // aborted via context cancellation
 )
 
 func (k Kind) String() string {
@@ -33,6 +34,8 @@ func (k Kind) String() string {
 		return "transient"
 	case KindFatal:
 		return "fatal"
+	case KindCanceled:
+		return "canceled"
 	default:
 		return "unknown"
 	}
@@ -52,11 +55,12 @@ func (r Result) OK() bool { return r.Kind == KindSuccess || r.Kind == KindAlread
 
 // Command is one declarative unit of work — loggable, fakeable, replayable.
 type Command struct {
-	ID      string        // stable identifier for logs/results
-	Name    string        // the external verb, for display
-	Args    []string      // arguments — never secrets (those go in Stdin)
-	Stdin   []byte        // optional stdin payload; the safe channel for secrets
-	Timeout time.Duration // per-command bound; 0 = runner default
+	ID        string        // stable identifier for logs/results
+	Name      string        // the external verb, for display
+	Args      []string      // arguments — never secrets (those go in Stdin)
+	Stdin     []byte        // optional stdin payload; the safe channel for secrets
+	Timeout   time.Duration // per-command bound; 0 = runner default
+	Retryable bool          // safe to replay on transient failure (reads/idempotent only)
 }
 
 // Runner executes Commands against some external system. The real
