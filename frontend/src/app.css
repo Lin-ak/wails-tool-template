@@ -1,0 +1,25 @@
+@import "tailwindcss";
+
+/* Tailwind v4 CSS-first config. Color tokens generate bg, text and border
+   utilities; radius tokens generate rounded utilities. React Aria component
+   state is styled with native data-[...] variants (see ExampleForm.tsx). */
+@theme {
+  --color-brand-50: #e1f5ee;
+  --color-brand-100: #9fe1cb;
+  --color-brand-500: #1d9e75;
+  --color-brand-700: #0f6e56;
+
+  --color-surface: #ffffff;
+  --color-surface-muted: #f1efe8;
+  --color-border: #d3d1c7;
+
+  --radius-panel: 0.625rem;
+}
+
+@layer base {
+  body {
+    background-color: var(--color-surface-muted);
+    color: var(--color-neutral-900);
+    -webkit-font-smoothing: antialiased;
+  }
+}
