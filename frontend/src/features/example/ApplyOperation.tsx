@@ -1,55 +1,63 @@
-import { Button } from "react-aria-components";
-import { tv } from "tailwind-variants/lite";
+import { useState } from "react";
 import { useApplyExample } from "../../bridge/queries";
+import { Button } from "../../shared/Button";
+import { ConfirmDialog } from "../../shared/ConfirmDialog";
+import { ProofPanel, type ProofPanelData } from "../../shared/ProofPanel";
+import { SegmentedControl } from "../../shared/SegmentedControl";
 import { StatusMessage } from "../../shared/StatusMessage";
-import { sanitizeSensitiveText } from "../../shared/sensitiveText";
+import { Switch } from "../../shared/Switch";
 
-const button = tv({
-  base: "rounded-md px-4 py-2 text-sm font-medium outline-none data-[focus-visible]:ring-2 data-[disabled]:opacity-50",
-  variants: {
-    intent: {
-      primary:
-        "bg-brand-500 text-white data-[hovered]:bg-brand-700 data-[pressed]:bg-brand-700 data-[focus-visible]:ring-brand-500/40",
-      danger:
-        "border border-red-300 bg-white text-red-700 data-[hovered]:bg-red-50 data-[focus-visible]:ring-red-400/40",
-    },
-  },
-});
-
-const kindColor: Record<string, string> = {
-  success: "text-green-700",
-  already_done: "text-green-700",
-  not_found: "text-amber-700",
-  transient: "text-amber-700",
-  canceled: "text-neutral-500",
-  fatal: "text-red-700",
-};
-
-// A representative request; a real screen would collect this from a form.
-const sampleRequest = { host: "10.0.0.10", port: 443, secret: "demo-secret" };
+// Hosts the operation can target; the SegmentedControl picks one. A real screen
+// would collect the request from a form (see ExampleForm).
+const TARGETS = { staging: "10.0.0.10", production: "10.0.0.20" };
+type Target = keyof typeof TARGETS;
 
 export function ApplyOperation() {
   const apply = useApplyExample();
+  const [target, setTarget] = useState<Target>("staging");
+  const [confirmFirst, setConfirmFirst] = useState(true);
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+
+  const run = () =>
+    apply.mutate({ host: TARGETS[target], port: 443, secret: "demo-secret" });
   const pct = apply.progress
     ? Math.round((apply.progress.step / apply.progress.total) * 100)
     : 0;
-  const steps = apply.data?.steps ?? [];
+  // Evidence of what ran; ProofPanel redacts every line before display.
+  const proof: ProofPanelData | null = apply.data
+    ? {
+        commands: apply.data.steps?.map((s) => `${s.name} → ${s.kind}`),
+        error: apply.data.ok ? undefined : apply.data.error,
+      }
+    : null;
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex items-center gap-2">
-        <Button
-          className={button({ intent: "primary" })}
-          isPending={apply.isPending}
-          onPress={() => apply.mutate(sampleRequest)}
+      <div className="flex flex-wrap items-center gap-3">
+        <SegmentedControl<Target>
+          aria-label="Target"
+          selectedKey={target}
+          onSelectionChange={setTarget}
+          items={[
+            { id: "staging", label: "Staging" },
+            { id: "production", label: "Production" },
+          ]}
+        />
+        <Switch
+          isSelected={confirmFirst}
+          onChange={setConfirmFirst}
+          aria-label="Confirm before applying"
         >
-          {apply.isPending ? "Applying…" : "Apply configuration"}
+          Confirm first
+        </Switch>
+        <Button
+          isPending={apply.isPending}
+          onPress={() => (confirmFirst ? setIsConfirmOpen(true) : run())}
+        >
+          {apply.isPending ? "Applying…" : "Apply"}
         </Button>
         {apply.isPending ? (
-          <Button
-            className={button({ intent: "danger" })}
-            onPress={apply.cancel}
-          >
+          <Button variant="secondary" onPress={apply.cancel}>
             Cancel
           </Button>
         ) : null}
@@ -67,35 +75,29 @@ export function ApplyOperation() {
         </div>
       ) : null}
 
-      {steps.length > 0 ? (
-        <ul className="flex flex-col gap-1">
-          {steps.map((s) => (
-            <li
-              key={s.name}
-              className="flex items-center justify-between text-sm"
-            >
-              <span className="text-neutral-700">{s.name}</span>
-              <span
-                className={`text-xs font-medium ${kindColor[s.kind] ?? "text-neutral-600"}`}
-              >
-                {s.kind}
-              </span>
-            </li>
-          ))}
-        </ul>
-      ) : null}
+      {proof ? <ProofPanel proof={proof} /> : null}
 
       {apply.data?.canceled ? (
         <StatusMessage tone="warning">Canceled.</StatusMessage>
-      ) : apply.data && !apply.data.ok ? (
-        <StatusMessage tone="error">
-          {apply.data.partial ? "Partially applied: " : ""}
-          {sanitizeSensitiveText(apply.data.error) || "Failed."}
-        </StatusMessage>
-      ) : null}
-      {apply.data?.ok ? (
+      ) : apply.data?.ok ? (
         <StatusMessage tone="success">Applied.</StatusMessage>
+      ) : apply.data ? (
+        <StatusMessage tone="error">Failed.</StatusMessage>
       ) : null}
+
+      <ConfirmDialog
+        isOpen={isConfirmOpen}
+        title={`Apply to ${target}?`}
+        confirmLabel="Apply"
+        variant={target === "production" ? "warning" : "info"}
+        onConfirm={() => {
+          setIsConfirmOpen(false);
+          run();
+        }}
+        onCancel={() => setIsConfirmOpen(false)}
+      >
+        This runs the sample operation against {TARGETS[target]}.
+      </ConfirmDialog>
     </div>
   );
 }
