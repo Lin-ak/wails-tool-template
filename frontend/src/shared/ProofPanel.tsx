@@ -78,6 +78,9 @@ export function ProofPanel({
       ? ""
       : `Duration: ${formatDuration(proof.durationMs)}`,
   ]);
+  // Redact ONCE here. Both the rendered <pre> and the Copy button consume these
+  // strings (Copy never touches proof.rawOutput/rawError), so a copy can never
+  // leak a secret the raw value held.
   const outputText = sanitizeSensitiveText(proof.rawOutput) || "No output";
   const errorText =
     [sanitizeSensitiveText(proof.rawError), sanitizeSensitiveText(proof.error)]
@@ -180,7 +183,7 @@ function ProofBlock({ title, lines }: { title: string; lines: string[] }) {
       <h3 className={blockTitle}>{title}</h3>
       <ul className="m-0 grid list-none gap-2 p-0">
         {lines.map((line, index) => (
-          // biome-ignore lint/suspicious/noArrayIndexKey: static evidence lines, rendered once and never reordered; content can repeat
+          // biome-ignore lint/suspicious/noArrayIndexKey: these are read-only log lines — never inserted, removed, or reordered, and identical lines can repeat — so the index is the only stable unique key and carries no state/perf risk.
           <li className="min-w-0" key={`${title}-${index}`}>
             <code className={codeBlock}>{sanitizeSensitiveText(line)}</code>
           </li>
