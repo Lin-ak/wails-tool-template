@@ -30,7 +30,8 @@ internal/
   platform/  build-tagged OS specifics
 frontend/src/
   bridge/    typed facade over Wails bindings + TanStack Query hooks + progress events
-  shared/    Panel, StatusMessage (tailwind-variants recipes)
+  shared/    UI kit (Button, TextField, SensitiveTextField, StatusMessage, Panel)
+             + sanitizeSensitiveText (redact output before display)
   features/example/  ExamplePage, ExampleForm (RHF+Zod+RAC), ApplyOperation (progress+cancel)
 .github/workflows/ci.yml    Windows backend CI + Linux frontend CI
 doc/design/architecture.md  the boundary-layer playbook + rules
@@ -74,6 +75,13 @@ See [`doc/design/architecture.md`](doc/design/architecture.md). In short: every
 external call goes through a `Runner` and returns a classified `Result`; every
 dependency has a fake; handlers stay thin; redact at every boundary; mutations
 are idempotent; CI runs on Windows.
+
+**Sanitize output before display.** Any backend or CLI text shown in the UI —
+stderr, command lines, config dumps, error messages — can echo a secret, so pass
+it through `sanitizeSensitiveText` (`shared/sensitiveText.ts`) first; see
+`ExampleForm`/`ApplyOperation`. It's the frontend complement to the backend
+`Redactor`, and is deliberately conservative so it won't mangle paths or
+ordinary error text (extend `SECRET_NAMES` for domain-specific field names).
 
 ## Replace the `example` feature
 
