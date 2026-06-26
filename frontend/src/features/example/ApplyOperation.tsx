@@ -2,6 +2,7 @@ import { Button } from "react-aria-components";
 import { tv } from "tailwind-variants/lite";
 import { useApplyExample } from "../../bridge/queries";
 import { StatusMessage } from "../../shared/StatusMessage";
+import { sanitizeSensitiveText } from "../../shared/sensitiveText";
 
 const button = tv({
   base: "rounded-md px-4 py-2 text-sm font-medium outline-none data-[focus-visible]:ring-2 data-[disabled]:opacity-50",
@@ -89,7 +90,7 @@ export function ApplyOperation() {
       ) : apply.data && !apply.data.ok ? (
         <StatusMessage tone="error">
           {apply.data.partial ? "Partially applied: " : ""}
-          {apply.data.error ?? "Failed."}
+          {sanitizeSensitiveText(apply.data.error) || "Failed."}
         </StatusMessage>
       ) : null}
       {apply.data?.ok ? (
