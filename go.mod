@@ -1,8 +1,10 @@
 module wails-tool-template
 
-go 1.26
-
-toolchain go1.26.4
+// Pinned to a widely-installed Go version so the template builds with a local
+// toolchain out of the box (no toolchain auto-download). Bump this — and add a
+// `toolchain` line — if you adopt newer language features. See the "Go version"
+// note in the README.
+go 1.23
 
 // internal/* packages depend only on the standard library, so
 // `go vet ./internal/...` and `go test ./internal/...` run offline on a clean
