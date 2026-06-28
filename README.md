@@ -70,6 +70,21 @@ wails dev          # generates the TS bindings under frontend/wailsjs
 wails build -platform windows/amd64
 ```
 
+### Go version
+
+`go.mod` pins **`go 1.23`** — a widely-installed version — so the backend builds
+with whatever toolchain you already have, with no download. Two things worth
+knowing:
+
+- **Newer language features?** Bump the `go` directive (e.g. `go 1.24`) and, if
+  you want to require an exact patch, add a `toolchain` line (e.g.
+  `toolchain go1.24.2`).
+- **`GOTOOLCHAIN=auto`** (Go's default) will *download* the toolchain named by
+  the `go`/`toolchain` directives when it's higher than your local Go — handy on
+  CI, but it needs network and silently fetches a new SDK. If you pin a version
+  above what's installed, expect that download (or set `GOTOOLCHAIN=local` to
+  fail fast instead).
+
 ## Conventions
 
 See [`doc/design/architecture.md`](doc/design/architecture.md). In short: every
