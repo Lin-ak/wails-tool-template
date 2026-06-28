@@ -31,7 +31,8 @@ internal/
 frontend/src/
   bridge/    typed facade over Wails bindings + TanStack Query hooks + progress events
   shared/    UI kit (Button, TextField, SensitiveTextField, Switch,
-             SegmentedControl, ConfirmDialog, ProofPanel, StatusMessage, Panel)
+             SegmentedControl, ConfirmDialog, ContextMenu, Panel,
+             ProofPanel, StatusMessage, Spinner, EmptyState)
              + sanitizeSensitiveText (redact output before display) + clipboard
   features/example/  ExamplePage, ExampleForm (RHF+Zod+RAC), ApplyOperation (progress+cancel)
 .github/workflows/ci.yml    Windows backend CI + Linux frontend CI
