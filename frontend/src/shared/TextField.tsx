@@ -30,6 +30,10 @@ export interface TextFieldProps extends NativeInputProps {
   label: string;
   error?: string;
   isDisabled?: boolean;
+  // Initial value, applied via RAC's own uncontrolled state. RHF's defaultValues
+  // don't populate a RAC-wrapped input for display, so seed the visible value
+  // here too (from the same source, so display == what RHF submits).
+  defaultValue?: string;
   // Optional trailing control (e.g. a Browse button) rendered beside the input.
   trailing?: ReactNode;
   className?: string;
@@ -44,6 +48,7 @@ export const TextField = forwardRef<HTMLInputElement, TextFieldProps>(
       label,
       error,
       isDisabled,
+      defaultValue,
       trailing,
       type = "text",
       className,
@@ -56,6 +61,7 @@ export const TextField = forwardRef<HTMLInputElement, TextFieldProps>(
         className={fieldStyle({ className })}
         isInvalid={Boolean(error)}
         isDisabled={isDisabled}
+        defaultValue={defaultValue}
       >
         <Label className={labelStyle()}>{label}</Label>
         <div className={rowStyle()}>

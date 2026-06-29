@@ -25,6 +25,9 @@ type NativeInputProps = Pick<
 export interface SensitiveTextFieldProps extends NativeInputProps {
   label: string;
   error?: string;
+  // See TextField: seed the visible value via RAC's defaultValue, not RHF's.
+  // (Prefer not to pre-fill real secrets.)
+  defaultValue?: string;
 }
 
 // A password field with a show/hide toggle. Like TextField it forwards its ref
@@ -36,13 +39,17 @@ export const SensitiveTextField = forwardRef<
   HTMLInputElement,
   SensitiveTextFieldProps
 >(function SensitiveTextField(
-  { label, error, autoComplete = "off", ...inputProps },
+  { label, error, defaultValue, autoComplete = "off", ...inputProps },
   ref,
 ) {
   const [isVisible, setIsVisible] = useState(false);
 
   return (
-    <AriaTextField className={fieldStyle()} isInvalid={Boolean(error)}>
+    <AriaTextField
+      className={fieldStyle()}
+      isInvalid={Boolean(error)}
+      defaultValue={defaultValue}
+    >
       <Label className={labelStyle()}>{label}</Label>
       <div className="relative flex items-stretch">
         <Input

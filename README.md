@@ -105,6 +105,22 @@ Go error *string*, not an `Error` — so `(error as Error).message` is `undefine
 and the error box renders blank. Run any caught/rejected error through
 `errorMessage` (`bridge/errorMessage.ts`) first; see `ExampleForm`.
 
+**Seed initial form values via `defaultValue`, not RHF `defaultValues`.** A
+React Aria-wrapped input (`TextField`/`SensitiveTextField`) does *not* pick up
+React Hook Form's `defaultValues` for **display** — the value sits in RHF state
+(so an unchanged field still submits it) but the field renders **blank**. Pass
+the seed to the field's own `defaultValue` too (RAC's initial-value path),
+sourced from the same place so display == submit. See `shared/TextField.tsx` and
+its test. This silently breaks any "edit the existing value" form.
+
+**Editing live state? read → seed → idempotent apply.** When a form edits
+existing remote/system state (not a one-shot action): read the current values
+and seed the form (via `defaultValue`); gate the section on that read with a
+loading state and mount the form *after* it resolves so user edits aren't
+clobbered by a late response; invalidate the read after a successful write; and
+keep writes idempotent so an unchanged field is a safe no-op. Persist only
+non-secret hints (host, username) across launches — never secrets.
+
 ## Replace the `example` feature
 
 `DoExample` (Go) and `features/example` (TS) are a vertical slice showing the
