@@ -1,6 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form } from "react-aria-components";
 import { useForm } from "react-hook-form";
+import { errorMessage } from "../../bridge/errorMessage";
 import { useDoExample } from "../../bridge/queries";
 import { Button } from "../../shared/Button";
 import { SensitiveTextField } from "../../shared/SensitiveTextField";
@@ -51,7 +52,7 @@ export function ExampleForm() {
 
       {run.isError ? (
         <StatusMessage tone="error">
-          {sanitizeSensitiveText((run.error as Error).message)}
+          {sanitizeSensitiveText(errorMessage(run.error))}
         </StatusMessage>
       ) : null}
       {run.isSuccess ? (
