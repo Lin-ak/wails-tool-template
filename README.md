@@ -29,8 +29,8 @@ internal/
   logging/   slog logger + secret Redactor
   platform/  build-tagged OS specifics
 frontend/src/
-  bridge/    typed facade over Wails bindings + TanStack Query hooks + progress events
-  shared/    UI kit (Button, TextField, SensitiveTextField, Switch,
+  bridge/    typed facade over Wails bindings + TanStack Query hooks + progress events + errorMessage
+  shared/    UI kit (Button, TextField, TextAreaField, SensitiveTextField, Switch,
              SegmentedControl, ConfirmDialog, ContextMenu, Panel,
              ProofPanel, StatusMessage, Spinner, EmptyState)
              + sanitizeSensitiveText (redact output before display) + clipboard
@@ -99,6 +99,11 @@ it through `sanitizeSensitiveText` (`shared/sensitiveText.ts`) first; see
 `ExampleForm`/`ApplyOperation`. It's the frontend complement to the backend
 `Redactor`, and is deliberately conservative so it won't mangle paths or
 ordinary error text (extend `SECRET_NAMES` for domain-specific field names).
+
+**Normalize Wails errors before display.** A failed bound call rejects with the
+Go error *string*, not an `Error` — so `(error as Error).message` is `undefined`
+and the error box renders blank. Run any caught/rejected error through
+`errorMessage` (`bridge/errorMessage.ts`) first; see `ExampleForm`.
 
 ## Replace the `example` feature
 
