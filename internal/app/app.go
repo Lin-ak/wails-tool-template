@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"strconv"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -48,8 +49,18 @@ type ApplyResult struct {
 	Partial  bool         `json:"partial"`  // a write may have landed before a failure
 	Canceled bool         `json:"canceled"` // the run was canceled
 	Steps    []StepResult `json:"steps"`    // always non-nil
-	Error    string       `json:"error,omitempty"`
-	Warnings []string     `json:"warnings,omitempty"`
+	// Values read back by the verify step (field → value), present when the
+	// post-write verification ran and passed — proof of what actually landed.
+	Readback map[string]string `json:"readback,omitempty"`
+	Error    string            `json:"error,omitempty"`
+	Warnings []string          `json:"warnings,omitempty"`
+}
+
+// PreflightResult crosses the bridge for PlanExample: the inspectable
+// current→planned diff (domain.Preflight, flattened) plus an error channel.
+type PreflightResult struct {
+	domain.Preflight
+	Error string `json:"error,omitempty"`
 }
 
 // ---- API: the bound Wails surface ----
@@ -62,6 +73,8 @@ type API struct{ app *App }
 func NewAPI(app *App) *API { return &API{app: app} }
 
 func (a *API) DoExample(req ExampleRequest) ExampleResult { return a.app.DoExample(req) }
+
+func (a *API) PlanExample(req ExampleRequest) PreflightResult { return a.app.PlanExample(req) }
 
 func (a *API) ApplyExample(req ExampleRequest, opID string) ApplyResult {
 	return a.app.ApplyExample(req, opID)
@@ -150,6 +163,55 @@ func (a *App) DoExample(req ExampleRequest) ExampleResult {
 	return out
 }
 
+// The example's field whitelist: what an apply is allowed to change, and what
+// the verify step must read back. This is the safe-write contract in one place.
+var (
+	exampleAllowedFields  = map[string]bool{"host": true, "port": true}
+	exampleReadbackFields = []string{"host", "port"}
+)
+
+// PlanExample is the preflight half of the safe-write loop: read the current
+// state (the detect command), build the planned state from the request, and
+// return the whitelisted diff for the UI to confirm BEFORE ApplyExample writes.
+func (a *App) PlanExample(req ExampleRequest) PreflightResult {
+	norm, _, err := domain.NormalizeExample(domain.ExampleRequest(req))
+	if err != nil {
+		return PreflightResult{Error: err.Error()}
+	}
+	red := logging.NewRedactor(norm.Secret)
+	res := a.runner.Run(a.ctxOrBackground(), adapter.Command{
+		ID: "detect", Name: "detect", Args: norm.Args(), Retryable: true,
+	})
+	if !res.OK() {
+		return PreflightResult{Error: red.Redact(res.Message)}
+	}
+	current := parseKeyValues(res.Raw)
+	// Planned = current state with the submitted fields overlaid, so the diff
+	// shows exactly (and only) what this request would change.
+	planned := make(map[string]any, len(current)+2)
+	for k, v := range current {
+		planned[k] = v
+	}
+	planned["host"] = norm.Host
+	planned["port"] = strconv.Itoa(norm.Port)
+	return PreflightResult{
+		Preflight: domain.BuildPreflight("Example configuration", current, planned, exampleAllowedFields),
+	}
+}
+
+// parseKeyValues parses "key=value" lines — the demo dialect the example tool's
+// detect/verify commands print. Replace with the real tool's output parser.
+func parseKeyValues(raw string) map[string]any {
+	out := map[string]any{}
+	for _, line := range strings.Split(raw, "\n") {
+		key, value, ok := strings.Cut(strings.TrimSpace(line), "=")
+		if ok && strings.TrimSpace(key) != "" {
+			out[strings.TrimSpace(key)] = strings.TrimSpace(value)
+		}
+	}
+	return out
+}
+
 // ApplyExample runs a multi-step plan over a cancellable operation (B), streaming
 // progress and returning per-step typed results (E). The opID is supplied by the
 // client so progress events can be filtered to this exact operation.
@@ -194,7 +256,45 @@ func (a *App) ApplyExample(req ExampleRequest, opID string) ApplyResult {
 	if !out.Ok && len(outcomes) > 0 {
 		out.Error = red.Redact(outcomes[len(outcomes)-1].Result.Message)
 	}
+
+	// Field-level read-back verification: when the verify step returned parseable
+	// state, every changed field must be whitelisted and every readback field must
+	// hold its planned value. "All steps exited 0" is not proof the write landed.
+	if out.Ok {
+		before, after := exampleReadbackState(outcomes)
+		if len(after) > 0 {
+			planned := map[string]any{"host": norm.Host, "port": strconv.Itoa(norm.Port)}
+			if err := domain.VerifyPostWriteFields(before, after, planned,
+				exampleAllowedFields, exampleReadbackFields, nil, "example"); err != nil {
+				out.Ok = false
+				out.Error = red.Redact(err.Error())
+			} else {
+				out.Readback = make(map[string]string, len(after))
+				for k, v := range after {
+					out.Readback[k] = fmt.Sprint(v)
+				}
+			}
+		}
+	}
 	return out
+}
+
+// exampleReadbackState extracts the before/after field maps from the plan's
+// read (detect) and verify outputs, for the post-write field verification.
+func exampleReadbackState(outcomes []domain.StepOutcome) (before, after map[string]any) {
+	for _, o := range outcomes {
+		switch o.Step.Effect {
+		case domain.EffectRead:
+			if before == nil {
+				before = parseKeyValues(o.Result.Raw)
+			}
+		case domain.EffectVerify:
+			after = parseKeyValues(o.Result.Raw)
+		case domain.EffectWrite:
+			// writes don't feed the read-back comparison
+		}
+	}
+	return before, after
 }
 
 // exampleApplyPlan is the representative multi-step plan: read → write → idempotent
