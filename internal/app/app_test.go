@@ -155,3 +155,106 @@ func TestAPIDelegatesToApp(t *testing.T) {
 		t.Fatalf("expected API.ApplyExample to delegate and succeed, got %+v", res)
 	}
 }
+
+// ---- safe-write loop: PlanExample preflight + ApplyExample read-back ----
+
+func TestPlanExampleBuildsWhitelistedDiff(t *testing.T) {
+	fake := &adapter.FakeRunner{Responses: map[string]adapter.Result{
+		"detect": {Kind: adapter.KindSuccess, Raw: "host=old\nport=80\nmode=auto"},
+	}}
+	pf := newTestApp(fake).PlanExample(ExampleRequest{Host: "new", Port: 443, Secret: "s"})
+	if pf.Error != "" {
+		t.Fatalf("unexpected error: %q", pf.Error)
+	}
+	if !pf.CanWrite || !pf.HasWriteDiff {
+		t.Fatalf("expected a writable pending preflight, got %+v", pf.Preflight)
+	}
+	if len(pf.Diff) != 2 { // host old→new, port 80→443; mode unchanged
+		t.Fatalf("expected 2 diff entries, got %+v", pf.Diff)
+	}
+	for _, e := range pf.Diff {
+		if !e.Allowed {
+			t.Fatalf("expected only whitelisted changes, got %+v", e)
+		}
+	}
+}
+
+func TestPlanExampleNoDiffWhenAlreadyConsistent(t *testing.T) {
+	fake := &adapter.FakeRunner{Responses: map[string]adapter.Result{
+		"detect": {Kind: adapter.KindSuccess, Raw: "host=h\nport=443"},
+	}}
+	pf := newTestApp(fake).PlanExample(ExampleRequest{Host: "h", Port: 443, Secret: "s"})
+	if pf.HasWriteDiff || !pf.CanWrite {
+		t.Fatalf("expected no-diff preflight, got %+v", pf.Preflight)
+	}
+}
+
+func TestPlanExampleSurfacesReadFailure(t *testing.T) {
+	fake := &adapter.FakeRunner{Responses: map[string]adapter.Result{
+		"detect": {Kind: adapter.KindFatal, Message: "connection refused"},
+	}}
+	pf := newTestApp(fake).PlanExample(ExampleRequest{Host: "h", Port: 443, Secret: "s"})
+	if pf.Error == "" {
+		t.Fatal("expected the read failure to surface as an error")
+	}
+}
+
+func TestApplyExampleReadbackMismatchFails(t *testing.T) {
+	fake := &adapter.FakeRunner{
+		Responses: map[string]adapter.Result{
+			"detect": {Kind: adapter.KindSuccess, Raw: "host=old\nport=80"},
+			// The write "succeeded" but the verify read-back shows port didn't take.
+			"verify": {Kind: adapter.KindSuccess, Raw: "host=h\nport=80"},
+		},
+		Default: adapter.Result{Kind: adapter.KindSuccess},
+	}
+	res := newTestApp(fake).ApplyExample(ExampleRequest{Host: "h", Port: 443, Secret: "s"}, "op-1")
+	if res.Ok {
+		t.Fatal("expected the read-back mismatch to fail the apply")
+	}
+	if !strings.Contains(res.Error, "port") {
+		t.Fatalf("expected the error to name the mismatched field, got %q", res.Error)
+	}
+}
+
+func TestApplyExampleReadbackUnexpectedFieldFails(t *testing.T) {
+	fake := &adapter.FakeRunner{
+		Responses: map[string]adapter.Result{
+			"detect": {Kind: adapter.KindSuccess, Raw: "host=old\nport=80\nmode=auto"},
+			// host/port landed, but a non-whitelisted field changed too.
+			"verify": {Kind: adapter.KindSuccess, Raw: "host=h\nport=443\nmode=manual"},
+		},
+		Default: adapter.Result{Kind: adapter.KindSuccess},
+	}
+	res := newTestApp(fake).ApplyExample(ExampleRequest{Host: "h", Port: 443, Secret: "s"}, "op-1")
+	if res.Ok || !strings.Contains(res.Error, "mode") {
+		t.Fatalf("expected an unexpected-field failure naming mode, got ok=%v err=%q", res.Ok, res.Error)
+	}
+}
+
+func TestApplyExampleReadbackOkPopulatesReadback(t *testing.T) {
+	fake := &adapter.FakeRunner{
+		Responses: map[string]adapter.Result{
+			"detect": {Kind: adapter.KindSuccess, Raw: "host=old\nport=80\nmode=auto"},
+			"verify": {Kind: adapter.KindSuccess, Raw: "host=h\nport=443\nmode=auto"},
+		},
+		Default: adapter.Result{Kind: adapter.KindSuccess},
+	}
+	res := newTestApp(fake).ApplyExample(ExampleRequest{Host: "h", Port: 443, Secret: "s"}, "op-1")
+	if !res.Ok {
+		t.Fatalf("expected success, got %+v", res)
+	}
+	if res.Readback["host"] != "h" || res.Readback["port"] != "443" {
+		t.Fatalf("expected read-back values, got %+v", res.Readback)
+	}
+}
+
+func TestApplyExampleNoVerifyOutputSkipsReadback(t *testing.T) {
+	// Steps succeed but the verify step prints nothing parseable: the apply stays
+	// ok (nothing to compare) and Readback stays empty — the pre-diff behavior.
+	a := newTestApp(&adapter.FakeRunner{Default: adapter.Result{Kind: adapter.KindSuccess}})
+	res := a.ApplyExample(ExampleRequest{Host: "h", Port: 443, Secret: "s"}, "op-1")
+	if !res.Ok || len(res.Readback) != 0 {
+		t.Fatalf("expected ok with no read-back, got %+v", res)
+	}
+}

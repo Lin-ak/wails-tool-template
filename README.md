@@ -121,8 +121,22 @@ clobbered by a late response; invalidate the read after a successful write; and
 keep writes idempotent so an unchanged field is a safe no-op. Persist only
 non-secret hints (host, username) across launches — never secrets.
 
+**Safe writes: plan → confirm → apply → verify read-back.** Any write to an
+external system should be provable, not assumed. The primitives live in
+`internal/domain/diff.go`: build a **whitelisted diff** of current→planned
+before writing (`BuildPreflight` / `BuildDiffForSubmittedFields` — any change
+outside the whitelist blocks the write), show it for confirmation
+(`shared/DiffList` inside `ConfirmDialog`), then after the write **verify the
+read-back** (`VerifyPostWriteFields`: changed fields must be whitelisted;
+readback fields must hold their planned values) and surface what landed
+(`ProofPanel`'s read-back block, `shared/resultProof.ts`). `PlanExample` /
+`ApplyExample` + `ExampleForm` demo the whole loop; mask secret values in a
+diff with `MaskDiffValues`.
+
 ## Replace the `example` feature
 
 `DoExample` (Go) and `features/example` (TS) are a vertical slice showing the
 whole path: form → Zod → bridge → thin handler → `Runner` → classified `Result` →
-redacted output. Delete it and copy its shape for your real operations.
+redacted output. `PlanExample`/`ApplyExample` + `ExampleForm` add the safe-write
+loop on top (preflight diff → confirm → apply → read-back verification). Delete
+them and copy their shape for your real operations.

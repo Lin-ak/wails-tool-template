@@ -23,6 +23,9 @@ export type ProofPanelData = {
   warnings?: string[];
   exitCode?: number | string;
   durationMs?: number;
+  // "field: value" lines read back AFTER the write — proof of what actually
+  // landed (see shared/resultProof.ts for the standard mapping).
+  readback?: string[];
   rawOutput?: string;
   rawError?: string;
   error?: string;
@@ -70,6 +73,7 @@ export function ProofPanel({
   ]);
   const diagnosticLines = compactLines(proof.diagnostics ?? []);
   const warningLines = compactLines(proof.warnings ?? []);
+  const readbackLines = compactLines(proof.readback ?? []);
   const resultLines = compactLines([
     proof.exitCode === undefined || proof.exitCode === ""
       ? ""
@@ -121,6 +125,12 @@ export function ProofPanel({
           <ProofBlock
             title="Results"
             lines={resultLines.length ? resultLines : ["No results"]}
+          />
+          <ProofBlock
+            title="Read-back (after write)"
+            lines={
+              readbackLines.length ? readbackLines : ["No read-back values"]
+            }
           />
 
           <ProofTextBlock
