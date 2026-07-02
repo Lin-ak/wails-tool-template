@@ -14,6 +14,15 @@ export function useDoExample() {
   });
 }
 
+// The preflight half of the safe-write loop: read current state and diff it
+// against the request. Its result gates the apply (canWrite / hasWriteDiff)
+// and feeds the confirm dialog's DiffList.
+export function usePlanExample() {
+  return useMutation({
+    mutationFn: (req: ExampleRequest) => client.planExample(req),
+  });
+}
+
 function newOpId(): string {
   return (
     globalThis.crypto?.randomUUID?.() ??
