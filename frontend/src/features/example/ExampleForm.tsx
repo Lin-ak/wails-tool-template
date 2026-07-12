@@ -127,7 +127,7 @@ export function ExampleForm() {
                   style={{ width: `${pct}%` }}
                 />
               </div>
-              <p className="mt-1 text-xs text-neutral-600">
+              <p className="mt-1 text-xs text-muted-foreground">
                 Step {apply.progress.step}/{apply.progress.total}:{" "}
                 {apply.progress.name}
               </p>

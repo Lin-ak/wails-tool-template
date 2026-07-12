@@ -26,11 +26,11 @@ export function EmptyState({
       {loading ? (
         <Spinner size={24} />
       ) : icon ? (
-        <div className="text-neutral-300">{icon}</div>
+        <div className="text-muted-foreground">{icon}</div>
       ) : null}
-      <p className="text-sm font-medium text-neutral-600">{title}</p>
+      <p className="text-sm font-medium text-muted-foreground">{title}</p>
       {description ? (
-        <p className="max-w-xs text-xs text-neutral-400">{description}</p>
+        <p className="max-w-xs text-xs text-muted-foreground">{description}</p>
       ) : null}
       {action ? <div className="mt-2">{action}</div> : null}
     </div>

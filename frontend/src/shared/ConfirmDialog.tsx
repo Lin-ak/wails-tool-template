@@ -30,11 +30,13 @@ export function ConfirmDialog(props: {
         <Dialog role="alertdialog" className="outline-none">
           <Heading
             slot="title"
-            className="m-0 mb-2 text-base font-semibold text-neutral-900"
+            className="m-0 mb-2 text-base font-semibold text-foreground"
           >
             {props.title}
           </Heading>
-          <div className="mb-4 text-sm text-neutral-600">{props.children}</div>
+          <div className="mb-4 text-sm text-muted-foreground">
+            {props.children}
+          </div>
           <div className="flex justify-end gap-2">
             <Button variant="secondary" onPress={props.onCancel} autoFocus>
               {props.cancelLabel ?? "Cancel"}

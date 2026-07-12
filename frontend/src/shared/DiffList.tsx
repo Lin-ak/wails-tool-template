@@ -18,11 +18,13 @@ export function DiffList({
     <ul className="m-0 flex list-none flex-col gap-1 p-0">
       {diff.map((entry) => (
         <li key={entry.field} className="flex justify-between gap-3">
-          <span className={entry.allowed ? "text-neutral-500" : "text-red-700"}>
+          <span
+            className={entry.allowed ? "text-muted-foreground" : "text-red-700"}
+          >
             {entry.label || entry.field}
             {entry.allowed ? "" : " (not whitelisted)"}
           </span>
-          <span className="font-mono text-neutral-800">
+          <span className="font-mono text-foreground">
             {entry.current || "—"} → {entry.planned || "—"}
           </span>
         </li>

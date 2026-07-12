@@ -8,9 +8,9 @@ import {
 import { tv } from "tailwind-variants/lite";
 
 const fieldStyle = tv({ base: "flex flex-col gap-1.5" });
-const labelStyle = tv({ base: "text-sm font-medium text-neutral-700" });
+const labelStyle = tv({ base: "text-sm font-medium text-foreground" });
 const areaStyle = tv({
-  base: "w-full resize-y rounded-md border border-border bg-surface px-3 py-2 font-mono text-xs text-neutral-900 outline-none data-[focused]:border-brand-500 data-[focused]:ring-2 data-[focused]:ring-brand-500/30 data-[invalid]:border-red-500 data-[disabled]:opacity-50",
+  base: "w-full resize-y rounded-md border border-border bg-surface px-3 py-2 font-mono text-xs text-foreground outline-none data-[focused]:border-brand-500 data-[focused]:ring-2 data-[focused]:ring-brand-500/30 data-[invalid]:border-red-500 data-[disabled]:opacity-50",
 });
 const errorStyle = tv({ base: "text-xs text-red-700" });
 

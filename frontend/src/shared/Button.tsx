@@ -9,13 +9,17 @@ import { tv } from "tailwind-variants/lite";
 // data-[...] variants. One recipe, two knobs (variant + size) — features pick a
 // variant instead of re-deriving button styles per screen.
 const button = tv({
-  base: "inline-flex items-center justify-center gap-2 rounded-md font-medium outline-none transition-colors data-[focus-visible]:ring-2 data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50",
+  // Emil: physical press feedback — a subtle scale on data-pressed (RAC), with
+  // transform in the transition. 0.98 is the "professional/crisp" end of his
+  // 0.95–0.98 range; ~150ms ease-out. Reduced-motion drops the transform (see
+  // app.css) so only the colour animates.
+  base: "inline-flex items-center justify-center gap-2 rounded-md font-medium outline-none transition-[color,background-color,border-color,transform] duration-150 ease-out data-[pressed]:scale-[0.98] data-[focus-visible]:ring-2 data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50",
   variants: {
     variant: {
       primary:
         "bg-brand-500 text-white data-[hovered]:bg-brand-700 data-[pressed]:bg-brand-700 data-[focus-visible]:ring-brand-500/40",
       secondary:
-        "border border-border bg-surface text-neutral-800 data-[hovered]:bg-surface-muted data-[focus-visible]:ring-brand-500/30",
+        "border border-border bg-surface text-foreground data-[hovered]:bg-surface-muted data-[focus-visible]:ring-brand-500/30",
       danger:
         "bg-red-600 text-white data-[hovered]:bg-red-700 data-[pressed]:bg-red-700 data-[focus-visible]:ring-red-500/40",
     },

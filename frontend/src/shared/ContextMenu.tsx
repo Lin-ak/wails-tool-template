@@ -75,7 +75,7 @@ export function ContextMenu({
               role="menuitem"
               disabled={it.disabled}
               className={`block w-full px-3 py-1.5 text-left outline-none hover:bg-brand-500/10 disabled:cursor-default disabled:opacity-40 disabled:hover:bg-transparent ${
-                it.danger ? "text-red-600" : "text-neutral-700"
+                it.danger ? "text-red-600" : "text-foreground"
               }`}
               onClick={() => {
                 if (it.disabled) return;

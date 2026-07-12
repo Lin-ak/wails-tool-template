@@ -1,31 +1,35 @@
 import type { ReactNode } from "react";
-import { tv } from "tailwind-variants/lite";
 
-// One status-row recipe replaces the half-dozen near-duplicate status styles a
-// growing app accumulates. Tone is the only knob.
-const status = tv({
-  base: "flex items-start gap-2 rounded-md border px-3 py-2 text-sm",
-  variants: {
-    tone: {
-      neutral: "border-border bg-surface-muted text-neutral-700",
-      success: "border-green-200 bg-green-50 text-green-800",
-      warning: "border-amber-200 bg-amber-50 text-amber-800",
-      error: "border-red-200 bg-red-50 text-red-800",
-      info: "border-blue-200 bg-blue-50 text-blue-800",
-    },
-  },
-  defaultVariants: { tone: "neutral" },
-});
+import { alertVariants } from "@/components/ui/alert";
+import { cn } from "@/lib/utils";
+
+// StatusMessage = the app's live-region status row. Visuals come from the
+// shadcn/ui Alert recipe (semantic status tokens) so alerts and status rows
+// stay identical; the element stays <output> — an implicit polite "status"
+// live region, which role="alert" divs are not.
 
 export type StatusTone = "neutral" | "success" | "warning" | "error" | "info";
+
+const toneToVariant = {
+  neutral: "default",
+  success: "success",
+  warning: "warning",
+  error: "destructive",
+  info: "info",
+} as const;
 
 export interface StatusMessageProps {
   tone?: StatusTone;
   children: ReactNode;
 }
 
-export function StatusMessage({ tone, children }: StatusMessageProps) {
-  // <output> has an implicit ARIA role of "status" (a polite live region) —
-  // the right semantic element for an action's result message.
-  return <output className={status({ tone })}>{children}</output>;
+export function StatusMessage({
+  tone = "neutral",
+  children,
+}: StatusMessageProps) {
+  return (
+    <output className={cn(alertVariants({ variant: toneToVariant[tone] }))}>
+      {children}
+    </output>
+  );
 }

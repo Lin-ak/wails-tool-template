@@ -1,18 +1,11 @@
 import type { ReactNode } from "react";
-import { tv } from "tailwind-variants/lite";
 
-// tailwind-variants keeps variant logic out of the JSX. Define the recipe once;
-// call panel({ tone }) to get the className string.
-const panel = tv({
-  base: "rounded-panel border border-border bg-surface p-4",
-  variants: {
-    tone: {
-      neutral: "",
-      brand: "border-brand-500/40 bg-brand-50",
-    },
-  },
-  defaultVariants: { tone: "neutral" },
-});
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
+
+// Panel keeps its historical API (title / tone / action) but is now a thin
+// wrapper over the shadcn/ui Card business layer, so every panel in the app
+// inherits the semantic card tokens from one place.
 
 export interface PanelProps {
   title?: string;
@@ -24,17 +17,18 @@ export interface PanelProps {
 }
 
 export function Panel({ title, tone, action, children }: PanelProps) {
+  const hasHeader = Boolean(title || action);
   return (
-    <section className={panel({ tone })}>
-      {action ? (
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <h2 className="m-0 text-sm font-medium text-neutral-700">{title}</h2>
+    <Card
+      className={cn(tone === "brand" && "border-brand-500/40 bg-brand-surface")}
+    >
+      {hasHeader && (
+        <CardHeader className="pb-3">
+          <CardTitle>{title}</CardTitle>
           {action}
-        </div>
-      ) : title ? (
-        <h2 className="mb-3 text-sm font-medium text-neutral-700">{title}</h2>
-      ) : null}
-      {children}
-    </section>
+        </CardHeader>
+      )}
+      <CardContent className={cn(!hasHeader && "pt-4")}>{children}</CardContent>
+    </Card>
   );
 }

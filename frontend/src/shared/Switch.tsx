@@ -20,9 +20,9 @@ export function Switch(props: {
       onChange={props.onChange}
       isDisabled={props.isDisabled}
       aria-label={props["aria-label"]}
-      className="group inline-flex items-center gap-2 text-sm text-neutral-800 data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50"
+      className="group inline-flex items-center gap-2 text-sm text-foreground data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50"
     >
-      <span className="flex h-5 w-9 shrink-0 items-center rounded-full bg-neutral-300 px-0.5 transition-colors group-data-[selected]:bg-brand-500 group-data-[focus-visible]:ring-2 group-data-[focus-visible]:ring-brand-500/40">
+      <span className="flex h-5 w-9 shrink-0 items-center rounded-full bg-input px-0.5 transition-colors group-data-[selected]:bg-brand-500 group-data-[focus-visible]:ring-2 group-data-[focus-visible]:ring-brand-500/40">
         <span className="size-4 rounded-full bg-white shadow transition-transform group-data-[selected]:translate-x-4" />
       </span>
       {props.children}

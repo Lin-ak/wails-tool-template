@@ -2,9 +2,9 @@ import { forwardRef, type SelectHTMLAttributes, useId } from "react";
 import { tv } from "tailwind-variants/lite";
 
 const fieldStyle = tv({ base: "flex flex-col gap-1.5" });
-const labelStyle = tv({ base: "text-sm font-medium text-neutral-700" });
+const labelStyle = tv({ base: "text-sm font-medium text-foreground" });
 const selectStyle = tv({
-  base: "w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-neutral-900 outline-none focus-visible:border-brand-500 focus-visible:ring-2 focus-visible:ring-brand-500/30 aria-[invalid=true]:border-red-500 disabled:opacity-50",
+  base: "w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground outline-none focus-visible:border-brand-500 focus-visible:ring-2 focus-visible:ring-brand-500/30 aria-[invalid=true]:border-red-500 disabled:opacity-50",
 });
 const errorStyle = tv({ base: "text-xs text-red-700" });
 

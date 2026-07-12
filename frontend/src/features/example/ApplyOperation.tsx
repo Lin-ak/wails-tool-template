@@ -68,7 +68,7 @@ export function ApplyOperation() {
           <div className="h-2 w-full overflow-hidden rounded bg-surface-muted">
             <div className="h-full bg-brand-500" style={{ width: `${pct}%` }} />
           </div>
-          <p className="mt-1 text-xs text-neutral-600">
+          <p className="mt-1 text-xs text-muted-foreground">
             Step {apply.progress.step}/{apply.progress.total}:{" "}
             {apply.progress.name}
           </p>

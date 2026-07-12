@@ -26,7 +26,7 @@ export function SegmentedControl<T extends string>(props: {
         <ToggleButton
           key={item.id}
           id={item.id}
-          className="rounded px-3 py-1 text-sm text-neutral-600 outline-none transition-colors data-[selected]:bg-surface data-[selected]:text-neutral-900 data-[selected]:shadow-sm data-[focus-visible]:ring-2 data-[focus-visible]:ring-brand-500/40"
+          className="rounded px-3 py-1 text-sm text-muted-foreground outline-none transition-colors data-[selected]:bg-surface data-[selected]:text-foreground data-[selected]:shadow-sm data-[focus-visible]:ring-2 data-[focus-visible]:ring-brand-500/40"
         >
           {item.label}
         </ToggleButton>

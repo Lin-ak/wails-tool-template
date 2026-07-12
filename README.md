@@ -12,10 +12,10 @@ last one ended, not at zero.
 | Shell | Wails v2 (Go ↔ WebView2) |
 | Backend | Go — single static binary, `os/exec` + `context` for the boundary |
 | Frontend | React 19 + TypeScript + Vite |
-| Components | **React Aria Components** (unstyled, accessible) |
-| Styling | **Tailwind v4** (`@tailwindcss/vite`, CSS-first `@theme`) + `tailwind-variants`; RAC state via native `data-[…]:` variants |
+| Components | **React Aria Components** (interaction) + **shadcn/ui** (presentation) — see [layering](#component-layering-shadcnui--react-aria) |
+| Styling | **Tailwind v4** (`@tailwindcss/vite`, CSS-first `@theme`) + `tailwind-variants`/`cva`; three-layer design tokens with live light/dark; RAC state via native `data-[…]:` variants |
 | Data / forms | TanStack Query · React Hook Form + Zod |
-| Tooling | Vitest · Biome · Windows CI |
+| Tooling | Vitest · Biome · Playwright (mock-bridge E2E) · Windows CI |
 
 ## Layout
 
@@ -28,15 +28,23 @@ internal/
   ops/       cancellation Registry + progress Emitter
   logging/   slog logger + secret Redactor
   platform/  build-tagged OS specifics
-frontend/src/
-  bridge/    typed facade over Wails bindings + TanStack Query hooks + progress events + errorMessage
-  shared/    UI kit (Button, TextField, TextAreaField, SensitiveTextField, Switch,
-             SegmentedControl, ConfirmDialog, ContextMenu, Panel,
-             ProofPanel, StatusMessage, Spinner, EmptyState)
-             + sanitizeSensitiveText (redact output before display) + clipboard
-  features/example/  ExamplePage, ExampleForm (RHF+Zod+RAC), ApplyOperation (progress+cancel)
+frontend/
+  e2e.html + src/e2e/  Playwright / visual-dev harness: real App on a mocked Wails
+                       bridge (never bundled — `vite build` only takes index.html)
+  e2e/*.spec.ts        Playwright specs against the example feature
+  src/
+    app.css    three-layer design tokens (primitives → semantic → @theme) + live .dark
+    lib/utils  cn() (clsx + tailwind-merge) — shadcn class helper
+    components/ui/   shadcn/ui presentational primitives (card, alert, badge, table)
+    bridge/    typed facade over Wails bindings + TanStack Query hooks + progress events + errorMessage
+    shared/    interactive UI kit (Button, TextField, TextAreaField, SensitiveTextField,
+               Switch, SegmentedControl, ConfirmDialog, ContextMenu, Panel, ProofPanel,
+               StatusMessage, Spinner, EmptyState) + theme.ts/ThemeToggle (light/dark/system)
+               + sanitizeSensitiveText (redact output before display) + clipboard
+    features/example/  ExamplePage, ExampleForm (RHF+Zod+RAC), ApplyOperation (progress+cancel)
 .github/workflows/ci.yml    Windows backend CI + Linux frontend CI
 doc/design/architecture.md  the boundary-layer playbook + rules
+doc/GOTCHAS.md              cross-cutting traps (RAC/Tailwind/Playwright/Windows)
 ```
 
 ## Tailwind v4 + React Aria notes
@@ -51,6 +59,61 @@ doc/design/architecture.md  the boundary-layer playbook + rules
   CSS-first `@plugin` loading.)
 - Variant logic lives in `tailwind-variants` recipes (`tv(...)`), keeping the JSX
   free of long conditional class strings.
+
+## Component layering (shadcn/ui + React Aria)
+
+Two component libraries, split by job — don't reach for both to do the same
+thing:
+
+- **React Aria Components** own **interaction**: anything with focus management,
+  keyboard semantics, a controlled/uncontrolled value, or an accessibility
+  contract — forms, `Switch`, `SegmentedControl`, `ConfirmDialog`, `ContextMenu`,
+  `Select`. These live in `shared/` and are the foundation; never swap a RAC
+  interactive for a hand-rolled `<div onClick>`.
+- **shadcn/ui** owns **presentation**: static chrome that just needs to look
+  right — `card`, `alert`, `badge`, `table`. These live in `components/ui/`, are
+  copy-in (not a dependency you upgrade), and are styled with `cva` + `cn()`
+  (`lib/utils`). Add more with the shadcn CLI; `components.json` is already
+  wired (style *new-york*, base color aliased to our semantic tokens).
+- **The seam:** `shared/` wrappers compose the two. `Panel` wraps shadcn `Card`;
+  `StatusMessage` wraps shadcn `Alert`. Features import from `shared/`, not
+  `components/ui/` directly — so a restyle swaps the primitive in one wrapper.
+
+Rule of thumb: **if it responds to the keyboard, it's React Aria; if it just
+renders, it's shadcn.**
+
+## Theming & design tokens
+
+`app.css` defines tokens in **three layers** so a restyle or a new theme touches
+one place:
+
+1. **Primitives** (`:root`, `--brand-*`): the raw palette. Components never
+   reference these.
+2. **Semantic tokens** (`:root` + `.dark`, `--background`/`--card`/`--primary`/
+   `--border`/`--destructive`/`--success`/`--warning`/`--info`…): what a colour
+   *means*. Everything — shared/, shadcn ui/, features/ — consumes only these.
+3. **Tailwind mapping** (`@theme inline`): exposes the semantic tokens as
+   utilities (`bg-background`, `border-border`, `bg-card`…). `inline` keeps the
+   `var()` live at use-time, so toggling `.dark` on `<html>` re-themes with no
+   rebuild.
+
+Light/dark is **live**: `shared/theme.ts` persists the choice and toggles `.dark`
+on `<html>` (Light / Dark / **Auto**, where Auto follows the OS via
+`matchMedia`); `initTheme()` runs before first paint in `main.tsx` (no
+flash-of-wrong-theme) and `shared/ThemeToggle` drives it from the header. To
+re-skin, edit the primitives + the two semantic blocks — components don't change.
+`prefers-reduced-motion` drops transform-driven motion but keeps colour
+transitions and the spinner (see the base layer in `app.css`).
+
+## E2E / visual-dev harness
+
+`e2e.html` boots the **real** `App` against a **mocked** Wails bridge
+(`src/e2e/mockBridge.ts` installs `window.go.app.App` + `window.runtime`), so you
+can run and click the whole UI — including the safe-write plan→confirm→apply→
+read-back loop — in a plain browser with no Go backend. `vite build` only bundles
+`index.html`, so this never ships. `npm run e2e` runs the Playwright specs in
+`e2e/`; `npm run dev` + opening `/e2e.html` gives you the same harness for manual
+visual work. Point `mockBridge` at your real bound methods as you add features.
 
 ## Getting started
 

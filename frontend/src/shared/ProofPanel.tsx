@@ -38,14 +38,14 @@ type ProofCopyState = {
 } | null;
 
 const codeBlock =
-  "block rounded bg-surface-muted p-2 font-mono text-xs leading-relaxed text-neutral-800 [overflow-wrap:anywhere]";
+  "block rounded bg-surface-muted p-2 font-mono text-xs leading-relaxed text-foreground [overflow-wrap:anywhere]";
 const blockTitle =
-  "m-0 text-xs font-semibold uppercase tracking-wide text-neutral-500";
+  "m-0 text-xs font-semibold uppercase tracking-wide text-muted-foreground";
 const triggerStyle =
-  "flex w-full items-center justify-between gap-2 px-4 py-2.5 text-left text-sm font-medium text-neutral-800 outline-none data-[focus-visible]:ring-2 data-[focus-visible]:ring-inset data-[focus-visible]:ring-brand-500/40";
+  "flex w-full items-center justify-between gap-2 px-4 py-2.5 text-left text-sm font-medium text-foreground outline-none data-[focus-visible]:ring-2 data-[focus-visible]:ring-inset data-[focus-visible]:ring-brand-500/40";
 
 const preClass = (isExpanded: boolean) =>
-  `m-0 overflow-auto whitespace-pre-wrap rounded bg-surface-muted p-2 font-mono text-xs leading-relaxed text-neutral-800 ${isExpanded ? "" : "max-h-40"}`;
+  `m-0 overflow-auto whitespace-pre-wrap rounded bg-surface-muted p-2 font-mono text-xs leading-relaxed text-foreground ${isExpanded ? "" : "max-h-40"}`;
 
 export function ProofPanel({
   proof,
@@ -225,7 +225,7 @@ function ProofTextBlock(props: {
   return (
     <div className="flex flex-col gap-1.5">
       <div className="flex items-center justify-between gap-2">
-        <h3 className="m-0 text-sm font-semibold text-neutral-800">
+        <h3 className="m-0 text-sm font-semibold text-foreground">
           {props.title}
         </h3>
         <div className="flex items-center gap-2">
@@ -233,7 +233,7 @@ function ProofTextBlock(props: {
             className={
               props.copyStatus === "error"
                 ? "text-xs text-red-700"
-                : "text-xs text-neutral-500"
+                : "text-xs text-muted-foreground"
             }
             aria-live="polite"
           >

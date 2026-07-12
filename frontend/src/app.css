@@ -1,25 +1,123 @@
 @import "tailwindcss";
 
-/* Tailwind v4 CSS-first config. Color tokens generate bg, text and border
-   utilities; radius tokens generate rounded utilities. React Aria component
-   state is styled with native data-[...] variants (see ExampleForm.tsx). */
-@theme {
-  --color-brand-50: #e1f5ee;
-  --color-brand-100: #9fe1cb;
-  --color-brand-500: #1d9e75;
-  --color-brand-700: #0f6e56;
+/* ---------------------------------------------------------------------------
+   Design tokens — three layers:
+   1. Primitives (:root): raw palette values. Never referenced by components.
+   2. Semantic tokens (:root / .dark): what a color MEANS (surface, border,
+      primary, status…). Components and shadcn/ui consume only these.
+   3. Tailwind mapping (@theme inline): exposes semantic tokens as utilities
+      (bg-surface, border-border, bg-card…). `inline` keeps the var() alive at
+      use-time, so toggling .dark on <html> re-themes without a rebuild.
+   Dark mode is LIVE: shared/theme.ts toggles the `.dark` class on <html>
+   (persisted; follows the OS when set to "system") and shared/ThemeToggle drives
+   it. Components consume semantic tokens only — no literal neutral-* left — so
+   both themes render without per-component overrides.
+--------------------------------------------------------------------------- */
 
-  --color-surface: #ffffff;
-  --color-surface-muted: #f1efe8;
-  --color-border: #d3d1c7;
+:root {
+  /* 1 — primitives */
+  --brand-50: #e1f5ee;
+  --brand-100: #9fe1cb;
+  --brand-500: #1d9e75;
+  --brand-700: #0f6e56;
 
-  --radius-panel: 0.625rem;
+  /* 2 — semantic (light) */
+  --background: #f1efe8;
+  --foreground: #171717;
+  --card: #ffffff;
+  --card-foreground: #171717;
+  --muted: #f1efe8;
+  --muted-foreground: #737373;
+  --primary: var(--brand-500);
+  --primary-foreground: #ffffff;
+  --border: #d3d1c7;
+  --input: #d3d1c7;
+  --ring: var(--brand-500);
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
+  --success: #059669;
+  --success-foreground: #ffffff;
+  --warning: #d97706;
+  --warning-foreground: #ffffff;
+  --info: #2563eb;
+  --info-foreground: #ffffff;
+  /* brand-tinted card surface (Result panel highlight) */
+  --brand-surface: var(--brand-50);
+  --radius: 0.625rem;
+}
+
+.dark {
+  --background: #171614;
+  --foreground: #e8e6df;
+  --card: #201f1c;
+  --card-foreground: #e8e6df;
+  --muted: #262521;
+  --muted-foreground: #a3a094;
+  --border: #3a382f;
+  --input: #3a382f;
+  --destructive: #ef4444;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --info: #3b82f6;
+  --brand-surface: #14261f;
+}
+
+/* 3 — Tailwind v4 utility mapping */
+@theme inline {
+  /* legacy names kept so existing components keep compiling unchanged */
+  --color-brand-50: var(--brand-50);
+  --color-brand-100: var(--brand-100);
+  --color-brand-500: var(--brand-500);
+  --color-brand-700: var(--brand-700);
+  --color-surface: var(--card);
+  --color-surface-muted: var(--muted);
+  --color-brand-surface: var(--brand-surface);
+  --radius-panel: var(--radius);
+
+  /* shadcn/ui semantic names */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
 }
 
 @layer base {
   body {
-    background-color: var(--color-surface-muted);
-    color: var(--color-neutral-900);
+    background-color: var(--background);
+    color: var(--foreground);
     -webkit-font-smoothing: antialiased;
+  }
+
+  /* Reduced motion (Emil/Apple): drop MOVEMENT, keep colour/opacity and
+     functional animations. Restricting every transition to colour properties
+     makes transform-driven motion (switch thumb slide, button press-scale,
+     stepper reflow) instant while the loading spinner (an animation, not a
+     transition) keeps turning so "working" still reads. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    ::before,
+    ::after {
+      transition-property: color, background-color, border-color, fill, stroke,
+        opacity !important;
+      scroll-behavior: auto !important;
+    }
   }
 }

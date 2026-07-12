@@ -6,6 +6,9 @@
       "!**/node_modules/**",
       "!**/dist/**",
       "!**/wailsjs/**",
+      "!**/test-results/**",
+      "!**/playwright-report/**",
+      "!**/playwright/.cache/**",
       "!**/*.css"
     ]
   },

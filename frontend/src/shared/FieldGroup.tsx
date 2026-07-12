@@ -10,7 +10,7 @@ export function FieldGroup({
 }) {
   return (
     <fieldset className="m-0 flex flex-col gap-3 border-0 p-0">
-      <legend className="mb-1 p-0 text-xs font-semibold text-neutral-500">
+      <legend className="mb-1 p-0 text-xs font-semibold text-muted-foreground">
         {title}
       </legend>
       {children}
