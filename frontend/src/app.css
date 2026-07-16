@@ -15,11 +15,13 @@
 --------------------------------------------------------------------------- */
 
 :root {
-  /* 1 — primitives */
+  /* 1 — primitives. brand-700 is the darkest shade that carries WHITE text at
+     WCAG AA (#1d9e75 is only ~3.4:1 — accents/rings/fills, never text bg). */
   --brand-50: #e1f5ee;
   --brand-100: #9fe1cb;
   --brand-500: #1d9e75;
   --brand-700: #0f6e56;
+  --brand-800: #0b5340;
 
   /* 2 — semantic (light) */
   --background: #f1efe8;
@@ -28,7 +30,7 @@
   --card-foreground: #171717;
   --muted: #f1efe8;
   --muted-foreground: #737373;
-  --primary: var(--brand-500);
+  --primary: var(--brand-700); /* AA with white text; brand-500 fails (3.4:1) */
   --primary-foreground: #ffffff;
   --border: #d3d1c7;
   --input: #d3d1c7;
@@ -69,6 +71,7 @@
   --color-brand-100: var(--brand-100);
   --color-brand-500: var(--brand-500);
   --color-brand-700: var(--brand-700);
+  --color-brand-800: var(--brand-800);
   --color-surface: var(--card);
   --color-surface-muted: var(--muted);
   --color-brand-surface: var(--brand-surface);

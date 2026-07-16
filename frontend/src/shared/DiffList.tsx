@@ -19,7 +19,9 @@ export function DiffList({
       {diff.map((entry) => (
         <li key={entry.field} className="flex justify-between gap-3">
           <span
-            className={entry.allowed ? "text-muted-foreground" : "text-red-700"}
+            className={
+              entry.allowed ? "text-muted-foreground" : "text-destructive"
+            }
           >
             {entry.label || entry.field}
             {entry.allowed ? "" : " (not whitelisted)"}

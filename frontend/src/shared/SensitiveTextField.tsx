@@ -10,9 +10,9 @@ import { tv } from "tailwind-variants/lite";
 const fieldStyle = tv({ base: "flex flex-col gap-1.5" });
 const labelStyle = tv({ base: "text-sm font-medium text-foreground" });
 const inputStyle = tv({
-  base: "w-full rounded-md border border-border bg-surface px-3 py-2 pr-16 text-sm text-foreground outline-none data-[focused]:border-brand-500 data-[focused]:ring-2 data-[focused]:ring-brand-500/30 data-[invalid]:border-red-500",
+  base: "w-full rounded-md border border-border bg-surface px-3 py-2 pr-16 text-sm text-foreground outline-none data-[focused]:border-brand-500 data-[focused]:ring-2 data-[focused]:ring-brand-500/30 data-[invalid]:border-destructive",
 });
-const errorStyle = tv({ base: "text-xs text-red-700" });
+const errorStyle = tv({ base: "text-xs text-destructive" });
 const toggleStyle = tv({
   base: "absolute right-2 top-1/2 -translate-y-1/2 rounded px-1 text-xs font-medium text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-brand-500/30",
 });

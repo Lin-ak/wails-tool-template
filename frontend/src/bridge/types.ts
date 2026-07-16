@@ -58,6 +58,7 @@ export interface PreflightResult {
   hasWriteDiff: boolean;
   canWrite: boolean;
   message: string;
+  warnings?: string[];
   error?: string;
 }
 

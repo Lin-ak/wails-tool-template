@@ -3,6 +3,7 @@ package adapter
 import (
 	"bytes"
 	"context"
+	"errors"
 	"os"
 	"os/exec"
 	"time"
@@ -26,10 +27,16 @@ func (r ExecRunner) Run(ctx context.Context, cmd Command) Result {
 		return Result{Kind: KindCanceled, Message: cmd.Name + " canceled"}
 	}
 	timeout := cmd.Timeout
-	if timeout == 0 {
+	if timeout <= 0 {
 		timeout = r.Default
 	}
-	runCtx, cancel := context.WithTimeout(ctx, timeout)
+	// No Default configured means no per-command deadline. Guard it explicitly:
+	// WithTimeout(ctx, 0) would be an ALREADY-EXPIRED context, turning every
+	// command into an instant (and retried) "timed out".
+	runCtx, cancel := ctx, func() {}
+	if timeout > 0 {
+		runCtx, cancel = context.WithTimeout(ctx, timeout)
+	}
 	defer cancel()
 
 	var stdout, stderr bytes.Buffer
@@ -65,7 +72,8 @@ func exitCode(err error) int {
 	if err == nil {
 		return 0
 	}
-	if ee, ok := err.(*exec.ExitError); ok {
+	var ee *exec.ExitError
+	if errors.As(err, &ee) {
 		return ee.ExitCode()
 	}
 	return -1

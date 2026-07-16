@@ -10,9 +10,9 @@ import { tv } from "tailwind-variants/lite";
 const fieldStyle = tv({ base: "flex flex-col gap-1.5" });
 const labelStyle = tv({ base: "text-sm font-medium text-foreground" });
 const inputStyle = tv({
-  base: "w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground outline-none data-[focused]:border-brand-500 data-[focused]:ring-2 data-[focused]:ring-brand-500/30 data-[invalid]:border-red-500 data-[disabled]:opacity-50",
+  base: "w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground outline-none data-[focused]:border-brand-500 data-[focused]:ring-2 data-[focused]:ring-brand-500/30 data-[invalid]:border-destructive data-[disabled]:opacity-50",
 });
-const errorStyle = tv({ base: "text-xs text-red-700" });
+const errorStyle = tv({ base: "text-xs text-destructive" });
 const rowStyle = tv({ base: "flex items-stretch gap-2" });
 
 type NativeInputProps = Pick<

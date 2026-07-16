@@ -232,7 +232,7 @@ function ProofTextBlock(props: {
           <span
             className={
               props.copyStatus === "error"
-                ? "text-xs text-red-700"
+                ? "text-xs text-destructive"
                 : "text-xs text-muted-foreground"
             }
             aria-live="polite"

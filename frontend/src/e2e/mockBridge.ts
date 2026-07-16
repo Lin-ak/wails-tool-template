@@ -6,11 +6,13 @@ import type {
   Progress,
 } from "@/bridge/types";
 
-// Mock Wails bridge for browser E2E / visual dev: installs window.go.app.App +
+// Mock Wails bridge for browser E2E / visual dev: installs window.go.app.API +
 // window.runtime so the REAL app renders and runs the safe-write loop without a
 // Go backend. Dev-only — loaded solely by e2e.html, which `vite build` never
 // bundles (it only takes index.html). Point it at your real bound methods when
-// you wire up a new feature.
+// you wire up a new feature. The key MUST mirror the real bound struct name
+// (window.go.<package>.<StructName>) or E2E green stops proving anything — see
+// doc/GOTCHAS.md "Wails bridge".
 
 type Cb = (...data: unknown[]) => void;
 
@@ -59,7 +61,7 @@ export function installMockBridge({ stepDelayMs = 200 } = {}) {
 
   window.go = {
     app: {
-      App: {
+      API: {
         DoExample: async (req: ExampleRequest): Promise<ExampleResult> => ({
           ok: true,
           kind: "ok",

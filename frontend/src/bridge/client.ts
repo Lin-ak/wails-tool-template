@@ -5,11 +5,12 @@ import type {
   PreflightResult,
 } from "./types";
 
-// Wails injects bound Go methods on window.go.<package>.<struct>. The App now
-// lives in package `app`, so it is exposed as window.go.app.App. We wrap it in a
-// typed facade so feature code never touches the global and we get one place for
-// logging or mocks. Once initialized with Wails you can instead import the
-// generated bindings from `wailsjs/go/app/App` and drop the window plumbing.
+// Wails injects bound Go methods on window.go.<package>.<StructName>. The bound
+// object is `*app.API` (main.go Bind), so it is exposed as window.go.app.API —
+// the STRUCT name, not "App". We wrap it in a typed facade so feature code never
+// touches the global and we get one place for logging or mocks. Once initialized
+// with Wails you can instead import the generated bindings from
+// `wailsjs/go/app/API` and drop the window plumbing.
 interface Bridge {
   DoExample(req: ExampleRequest): Promise<ExampleResult>;
   PlanExample(req: ExampleRequest): Promise<PreflightResult>;
@@ -19,14 +20,19 @@ interface Bridge {
 
 declare global {
   interface Window {
-    go?: { app?: { App?: Bridge } };
+    go?: { app?: { API?: Bridge } };
   }
 }
 
 function bridge(): Bridge {
-  const b = window.go?.app?.App;
+  const b = window.go?.app?.API;
   if (!b) {
-    throw new Error("Wails bridge unavailable (run via `wails dev`).");
+    // List what IS bound so a renamed struct/package self-diagnoses instead of
+    // presenting as a generic "bridge unavailable" (see doc/GOTCHAS.md).
+    const bound = Object.keys(window.go?.app ?? {}).join(", ") || "nothing";
+    throw new Error(
+      `Wails bridge unavailable: window.go.app.API missing (bound: ${bound}). Run via \`wails dev\`.`,
+    );
   }
   return b;
 }

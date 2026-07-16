@@ -16,12 +16,14 @@ const button = tv({
   base: "inline-flex items-center justify-center gap-2 rounded-md font-medium outline-none transition-[color,background-color,border-color,transform] duration-150 ease-out data-[pressed]:scale-[0.98] data-[focus-visible]:ring-2 data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50",
   variants: {
     variant: {
+      // brand-700, not brand-500: white label text needs ≥4.5:1 (WCAG AA) and
+      // brand-500 only reaches ~3.4:1. brand-500 stays for rings/accents.
       primary:
-        "bg-brand-500 text-white data-[hovered]:bg-brand-700 data-[pressed]:bg-brand-700 data-[focus-visible]:ring-brand-500/40",
+        "bg-brand-700 text-white data-[hovered]:bg-brand-800 data-[pressed]:bg-brand-800 data-[focus-visible]:ring-brand-500/40",
       secondary:
         "border border-border bg-surface text-foreground data-[hovered]:bg-surface-muted data-[focus-visible]:ring-brand-500/30",
       danger:
-        "bg-red-600 text-white data-[hovered]:bg-red-700 data-[pressed]:bg-red-700 data-[focus-visible]:ring-red-500/40",
+        "bg-destructive text-destructive-foreground data-[hovered]:bg-destructive/90 data-[pressed]:bg-destructive/90 data-[focus-visible]:ring-destructive/40",
     },
     size: {
       sm: "px-2.5 py-1 text-xs",

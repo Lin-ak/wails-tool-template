@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useApplyExample } from "../../bridge/queries";
 import { Button } from "../../shared/Button";
 import { ConfirmDialog } from "../../shared/ConfirmDialog";
+import { OperationProgress } from "../../shared/OperationProgress";
 import { ProofPanel, type ProofPanelData } from "../../shared/ProofPanel";
 import { SegmentedControl } from "../../shared/SegmentedControl";
 import { StatusMessage } from "../../shared/StatusMessage";
@@ -20,9 +21,6 @@ export function ApplyOperation() {
 
   const run = () =>
     apply.mutate({ host: TARGETS[target], port: 443, secret: "demo-secret" });
-  const pct = apply.progress
-    ? Math.round((apply.progress.step / apply.progress.total) * 100)
-    : 0;
   // Evidence of what ran; ProofPanel redacts every line before display.
   const proof: ProofPanelData | null = apply.data
     ? {
@@ -63,16 +61,10 @@ export function ApplyOperation() {
         ) : null}
       </div>
 
-      {apply.progress ? (
-        <div>
-          <div className="h-2 w-full overflow-hidden rounded bg-surface-muted">
-            <div className="h-full bg-brand-500" style={{ width: `${pct}%` }} />
-          </div>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Step {apply.progress.step}/{apply.progress.total}:{" "}
-            {apply.progress.name}
-          </p>
-        </div>
+      {/* Gate on isPending (like ExampleForm) so the bar doesn't linger at 100%
+          next to the final status once the operation settles. */}
+      {apply.isPending && apply.progress ? (
+        <OperationProgress progress={apply.progress} />
       ) : null}
 
       {proof ? <ProofPanel proof={proof} /> : null}

@@ -57,10 +57,12 @@ type ApplyResult struct {
 }
 
 // PreflightResult crosses the bridge for PlanExample: the inspectable
-// current→planned diff (domain.Preflight, flattened) plus an error channel.
+// current→planned diff (domain.Preflight, flattened) plus warnings and an
+// error channel — the same non-fatal/fatal split as the other handlers.
 type PreflightResult struct {
 	domain.Preflight
-	Error string `json:"error,omitempty"`
+	Warnings []string `json:"warnings,omitempty"`
+	Error    string   `json:"error,omitempty"`
 }
 
 // ---- API: the bound Wails surface ----
@@ -109,16 +111,18 @@ func NewApp() *App {
 		Max:     3,
 		Backoff: adapter.ExponentialBackoff(200 * time.Millisecond),
 	}
-	a := NewAppWithRunner(runner)
-	a.log = log
-	return a
+	return newApp(runner, log) // one logger, shared with the LoggingRunner
 }
 
 // NewAppWithRunner injects the Runner (DI seam) so handlers can be unit-tested
 // with adapter.FakeRunner — no Wails, no real external tool.
 func NewAppWithRunner(runner adapter.Runner) *App {
+	return newApp(runner, logging.New())
+}
+
+func newApp(runner adapter.Runner, log *slog.Logger) *App {
 	return &App{
-		log:      logging.New(),
+		log:      log,
 		runner:   runner,
 		registry: ops.NewRegistry(),
 		emitter:  ops.NopEmitter{},
@@ -174,16 +178,16 @@ var (
 // state (the detect command), build the planned state from the request, and
 // return the whitelisted diff for the UI to confirm BEFORE ApplyExample writes.
 func (a *App) PlanExample(req ExampleRequest) PreflightResult {
-	norm, _, err := domain.NormalizeExample(domain.ExampleRequest(req))
+	norm, warnings, err := domain.NormalizeExample(domain.ExampleRequest(req))
 	if err != nil {
-		return PreflightResult{Error: err.Error()}
+		return PreflightResult{Warnings: warnings, Error: err.Error()}
 	}
 	red := logging.NewRedactor(norm.Secret)
 	res := a.runner.Run(a.ctxOrBackground(), adapter.Command{
 		ID: "detect", Name: "detect", Args: norm.Args(), Retryable: true,
 	})
 	if !res.OK() {
-		return PreflightResult{Error: red.Redact(res.Message)}
+		return PreflightResult{Warnings: warnings, Error: red.Redact(res.Message)}
 	}
 	current := parseKeyValues(res.Raw)
 	// Planned = current state with the submitted fields overlaid, so the diff
@@ -196,6 +200,7 @@ func (a *App) PlanExample(req ExampleRequest) PreflightResult {
 	planned["port"] = strconv.Itoa(norm.Port)
 	return PreflightResult{
 		Preflight: domain.BuildPreflight("Example configuration", current, planned, exampleAllowedFields),
+		Warnings:  warnings,
 	}
 }
 

@@ -9,6 +9,7 @@ import { Button } from "../../shared/Button";
 import { ConfirmDialog } from "../../shared/ConfirmDialog";
 import { DiffList } from "../../shared/DiffList";
 import { FieldGroup } from "../../shared/FieldGroup";
+import { OperationProgress } from "../../shared/OperationProgress";
 import { ProofPanel, type ProofPanelData } from "../../shared/ProofPanel";
 import { SensitiveTextField } from "../../shared/SensitiveTextField";
 import { StatusMessage } from "../../shared/StatusMessage";
@@ -56,9 +57,6 @@ export function ExampleForm() {
     }
   };
 
-  const pct = apply.progress
-    ? Math.round((apply.progress.step / apply.progress.total) * 100)
-    : 0;
   // Evidence of what ran + what the verify step read back afterwards.
   const proof: ProofPanelData | null = apply.data
     ? {
@@ -120,18 +118,7 @@ export function ExampleForm() {
       {apply.isPending ? (
         <div className="flex flex-col gap-2">
           {apply.progress ? (
-            <div>
-              <div className="h-2 w-full overflow-hidden rounded bg-surface-muted">
-                <div
-                  className="h-full bg-brand-500"
-                  style={{ width: `${pct}%` }}
-                />
-              </div>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Step {apply.progress.step}/{apply.progress.total}:{" "}
-                {apply.progress.name}
-              </p>
-            </div>
+            <OperationProgress progress={apply.progress} />
           ) : null}
           <Button variant="secondary" onPress={apply.cancel}>
             Cancel

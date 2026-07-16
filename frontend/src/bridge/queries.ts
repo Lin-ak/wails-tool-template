@@ -1,16 +1,16 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { useCallback, useRef, useState } from "react";
 import { client } from "./client";
 import { onProgress } from "./events";
 import type { ExampleRequest, Progress } from "./types";
 
 // One mutation per write action. TanStack Query owns the loading/error/retry
-// state that would otherwise be hand-rolled.
+// state that would otherwise be hand-rolled. When a screen caches server state
+// in a useQuery, invalidate it here on success:
+//   onSuccess: () => queryClient.invalidateQueries({ queryKey: ["your-key"] })
 export function useDoExample() {
-  const qc = useQueryClient();
   return useMutation({
     mutationFn: (req: ExampleRequest) => client.doExample(req),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["items"] }),
   });
 }
 

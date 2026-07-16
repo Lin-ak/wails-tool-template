@@ -108,7 +108,7 @@ transitions and the spinner (see the base layer in `app.css`).
 ## E2E / visual-dev harness
 
 `e2e.html` boots the **real** `App` against a **mocked** Wails bridge
-(`src/e2e/mockBridge.ts` installs `window.go.app.App` + `window.runtime`), so you
+(`src/e2e/mockBridge.ts` installs `window.go.app.API` + `window.runtime`), so you
 can run and click the whole UI — including the safe-write plan→confirm→apply→
 read-back loop — in a plain browser with no Go backend. `vite build` only bundles
 `index.html`, so this never ships. `npm run e2e` runs the Playwright specs in

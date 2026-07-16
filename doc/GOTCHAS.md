@@ -96,6 +96,21 @@ the render.
 
 ---
 
+## Wails bridge
+
+### The bound object's JS name is the STRUCT name — and the mock must mirror it ✅ handled
+`Bind: []any{api}` with `api := &app.API{…}` exposes `window.go.app.API` — the
+path is `window.go.<package>.<StructName>`, and nothing type-checks that your
+`bridge/client.ts` facade or `e2e/mockBridge.ts` use the same name. Get it wrong
+and every E2E stays green (mock and client share the same wrong assumption)
+while the real app throws "bridge unavailable" on the first call. Two defenses:
+`bridge()`'s error lists what actually IS bound (`Object.keys(window.go?.app ?? {})`)
+so a rename self-diagnoses; and whenever you rename the bound struct or its
+package, smoke-test once against `wails dev` — the mocked E2E cannot catch this
+class of bug by construction.
+
+---
+
 ## Backend / Go
 
 ### Windows console output is OEM-encoded (GBK on CN Windows), not UTF-8
