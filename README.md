@@ -39,7 +39,7 @@ frontend/
     bridge/    typed facade over Wails bindings + TanStack Query hooks + progress events + errorMessage
     shared/    interactive UI kit (Button, TextField, TextAreaField, SensitiveTextField,
                Switch, SegmentedControl, ConfirmDialog, ContextMenu, Panel, ProofPanel,
-               StatusMessage, Spinner, EmptyState) + theme.ts/ThemeToggle (light/dark/system)
+               StatusMessage, Spinner, EmptyState) + theme.ts (follows the OS light/dark setting)
                + sanitizeSensitiveText (redact output before display) + clipboard
     features/example/  ExamplePage, ExampleForm (RHF+Zod+RAC), ApplyOperation (progress+cancel)
 .github/workflows/ci.yml    Windows backend CI + Linux frontend CI
@@ -97,10 +97,11 @@ one place:
    `var()` live at use-time, so toggling `.dark` on `<html>` re-themes with no
    rebuild.
 
-Light/dark is **live**: `shared/theme.ts` persists the choice and toggles `.dark`
-on `<html>` (Light / Dark / **Auto**, where Auto follows the OS via
-`matchMedia`); `initTheme()` runs before first paint in `main.tsx` (no
-flash-of-wrong-theme) and `shared/ThemeToggle` drives it from the header. To
+Light/dark is **live** and follows the OS: `shared/theme.ts` toggles `.dark` on
+`<html>` from `matchMedia("(prefers-color-scheme: dark)")` and keeps listening
+for changes; `initTheme()` runs before first paint in `main.tsx` (no
+flash-of-wrong-theme). There is deliberately no in-app Light/Dark switch:
+Apple's HIG says apps follow the system appearance setting. To
 re-skin, edit the primitives + the two semantic blocks — components don't change.
 `prefers-reduced-motion` drops transform-driven motion but keeps colour
 transitions and the spinner (see the base layer in `app.css`).

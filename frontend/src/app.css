@@ -8,9 +8,9 @@
    3. Tailwind mapping (@theme inline): exposes semantic tokens as utilities
       (bg-surface, border-border, bg-card…). `inline` keeps the var() alive at
       use-time, so toggling .dark on <html> re-themes without a rebuild.
-   Dark mode is LIVE: shared/theme.ts toggles the `.dark` class on <html>
-   (persisted; follows the OS when set to "system") and shared/ThemeToggle drives
-   it. Components consume semantic tokens only — no literal neutral-* left — so
+   Dark mode is LIVE: shared/theme.ts toggles the `.dark` class on <html> to
+   follow the OS appearance setting (no in-app override, per Apple's HIG).
+   Components consume semantic tokens only — no literal neutral-* left — so
    both themes render without per-component overrides.
 --------------------------------------------------------------------------- */
 

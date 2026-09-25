@@ -7,12 +7,15 @@ test.beforeEach(async ({ page }) => {
   await page.goto("/e2e.html");
 });
 
-test("theme toggle switches the root .dark class", async ({ page }) => {
+test("appearance follows the OS light/dark setting live, with no in-app switch", async ({
+  page,
+}) => {
   const html = page.locator("html");
-  await page.getByRole("radio", { name: "Dark" }).click();
+  await page.emulateMedia({ colorScheme: "dark" });
   await expect(html).toHaveClass(/dark/);
-  await page.getByRole("radio", { name: "Light" }).click();
+  await page.emulateMedia({ colorScheme: "light" });
   await expect(html).not.toHaveClass(/dark/);
+  await expect(page.getByRole("radio", { name: "Dark" })).toHaveCount(0);
 });
 
 test("safe-write loop: preview → confirm diff → apply → verified", async ({
